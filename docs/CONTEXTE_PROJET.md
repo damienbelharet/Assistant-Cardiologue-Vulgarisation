@@ -9,7 +9,7 @@ l'architecture déjà en place.
 
 ## 1. Le projet en deux phrases
 
-« Lis un cœur » est un site interactif support d'un **atelier de 4 h** mené par deux
+« Lis un cœur » est un site interactif support d'un **atelier (calibré ~3 h)** mené par deux
 étudiants de l'ENSEIRB-MATMECA (Damien Belharet & Dima Husseini) pour faire découvrir les
 **télécommunications et le traitement du signal** à **2 lycéens de seconde** (sans aucune
 connaissance en code). Le fil rouge : « Aujourd'hui vous devenez ingénieurs biomédicaux ;
@@ -18,6 +18,13 @@ signal, le bruit, les filtres, l'ECG, puis on diagnostique.
 
 Les élèves **ne codent jamais** : ils cliquent sur des boutons et bougent des curseurs.
 
+**Retour terrain (important).** Le site a déjà été présenté à plusieurs groupes de seconde.
+En pratique, la partie atelier-sur-site dure **entre 2 h et 2 h 30** selon les groupes
+(questions, rythme), soit plutôt ~2 h. Il reste donc ~1 h, aujourd'hui occupée par une
+discussion sur l'orientation qu'on souhaite **alléger**. **Objectif des prochaines
+évolutions : enrichir le site (surtout via de nouveaux modules bonus) pour qu'il occupe
+davantage la séance.** Les élèves ont particulièrement apprécié les modules bonus (voir §9).
+
 ---
 
 ## 2. Contraintes techniques NON NÉGOCIABLES
@@ -25,6 +32,13 @@ Les élèves **ne codent jamais** : ils cliquent sur des boutons et bougent des 
 - **100 % statique, hors-ligne, sans installation.** Le site doit tourner en ouvrant les
   fichiers en local (`file:///…`), sans serveur, sans build, sans accès réseau (le wifi de
   la salle peut tomber). Aucune dépendance CDN : tout est dans le dossier (polices, Plotly).
+- **Site désormais AUSSI hébergé en ligne (URL publique).** Les élèves peuvent y revenir de
+  chez eux. ⚠️ Cela ne relâche PAS la contrainte ci-dessus : le build reste statique /
+  hors-ligne / `file://`. Concrètement, **les nouveaux bonus doivent être des simulations
+  pédagogiques** (pas de vrai matériel ni d'API à permission), exactement comme « La photo du
+  son » (aucune vraie FFT) ou « La montre du sang » (PPG simulé). En particulier, le bonus
+  « Paiement sans contact » ne doit **pas** dépendre du Web NFC (HTTPS + Chrome Android
+  uniquement) : c'est une **animation expliquant le principe**, pas un accès matériel.
 - **Pas de framework.** HTML/CSS/JavaScript « vanilla ». Pas de React, pas de bundler, pas
   de npm dans le livrable. Le JS existant mélange `var`/`function` et `const`/`let` ; reste
   dans cet esprit simple et lisible, sans étape de compilation.
@@ -50,12 +64,18 @@ Les élèves **ne codent jamais** : ils cliquent sur des boutons et bougent des 
 ## 4. Arborescence des fichiers
 
 ```text
-index.html        Accueil / mission + progression (badges, diplôme)
-signal.html       Module « C'est quoi un signal ? »   (badge : signal)
-coeur.html        Module « Le cœur et l'ECG »          (badge : coeur_ecg)
-labo.html         Module « Le Labo ECG »               (badge : labo)   ← le module central
-spectro.html      Module Bonus « La photo du son »     (futur badge : curieux)
-progression.js    Gestionnaire de badges (sessionStorage) + toast + confettis
+index.html        Accueil / mission + progression (badges, diplôme, QTE)
+signal.html       Module « C'est quoi un signal ? »      (badge : signal)
+coeur.html        Module « Le cœur et l'ECG »            (badge : coeur_ecg)
+ecouter.html      Module « Écouter le cœur » (Oreille d'or)
+labo.html         Module « Le Labo ECG »                 (badge : labo)   ← module central
+pathologies.html  Module « Détective des pathologies »   (badge : pathologies)
+metiers.html      Module « Les métiers de l'ingénieur »
+spectro.html      Bonus « La photo du son »
+montre.html       Bonus « La montre du sang » (PPG simulé)
+piano.html        Bonus « Piano Anti-Parasite »
+reels.html        Bonus « Coulisses Matlab » (3 vrais cœurs)
+progression.js    Gestionnaire de badges (sessionStorage) + moteur de sons + confettis
 signaux.js        Bibliothèque partagée : maths du signal/ECG + câblage des jeux de signal.html
 style.css         Habillage commun (thème « papier ECG »)
 fonts/            Polices woff2 (Bricolage, Atkinson)
@@ -63,7 +83,7 @@ lib/              plotly-basic.min.js
 ```
 
 Note : `acquisition.html` a été **fusionné dans labo.html** (étape 1 « Capter ») et peut être
-supprimé. Le module « Détective des pathologies » n'existe pas encore (voir §9).
+supprimé.
 
 ---
 
@@ -93,7 +113,7 @@ commenté. Les icônes sont des emojis (cohérent avec tout le site).
 
 `progression.js` expose : `validerModule(id)`, `moduleValide(id)`, `modulesValides()`,
 `tousLesBadges()`, `reinitialiserTout()`, `afficherToastBadge()`, `lancerConfettis()`.
-Clé `sessionStorage` : `"lisuncoeur_badges"`. Quatre badges :
+Clé `sessionStorage` : `"lisuncoeur_badges"`. Quatre badges **obligatoires** :
 `signal` 🌊, `coeur_ecg` 🫀, `labo` 🔬, `pathologies` 🩺.
 
 Le badge d'un module est attribué **à l'intérieur du module**, à la fin, par
@@ -105,6 +125,10 @@ le bouton « Retour à l'accueil pour voir ton badge » qui apparaît **une fois
 terminé**. Tous les liens de navigation « quitter / Accueil / logo » pointent vers
 `index.html` **nu** (sans paramètre). Sinon, revenir à l'accueil en cours de route attribue
 le badge prématurément (bug déjà rencontré et corrigé). `signal.html` est le modèle correct.
+
+Note : les **modules bonus sont optionnels** — ils ne conditionnent pas le diplôme (qui
+dépend des 4 badges obligatoires). Un bonus peut avoir son propre badge décoratif (ex.
+« curieux » pour la photo du son), sans entrer dans le compte des 4.
 
 ---
 
@@ -120,6 +144,8 @@ le badge prématurément (bug déjà rencontré et corrigé). `signal.html` est 
   cliquable ; les autres sous-étapes sont grisées avec un 🔒. Une fois le badge obtenu,
   tout se déverrouille (mode révision). Motif réutilisable : `.pastille-expandable` >
   `.pastille-tete` + `.sous-liste` > `.sous-liste-inner`, et `.sous-item.verrou`.
+- Carte/arbre du parcours : nœuds principaux + branches bonus, animations de tracé des
+  câbles (sons `trace`), flux lumineux continu sur les chemins validés.
 
 ### signal.html — « C'est quoi un signal ? » (badge : signal) — COMPLET
 Page la plus riche. Contient : un jeu « Tinder des signaux » (objet vs signal, swipe), un
@@ -130,6 +156,9 @@ période sur le graphe, une démo d'**échantillonnage** (signal discret), et un
 ### coeur.html — « Le cœur et l'ECG » (badge : coeur_ecg) — COMPLET
 Anatomie simplifiée → ondes P, QRS, T → synchronisation cœur + ECG en direct. Badge
 « Explorateur Anatomique ».
+
+### ecouter.html — « Écouter le cœur » (Oreille d'or) — COMPLET
+Explication du son du cœur en deux étapes. Montre les différentes pathologies en temps réel.
 
 ### labo.html — « Le Labo ECG » (badge : labo) — MODULE CENTRAL, COMPLET
 Barre d'étapes à **4 étapes verrouillées linéairement** (on ne saute pas une étape non
@@ -154,31 +183,44 @@ script inline : `etapeActuelle`, `etapeMax` (verrouillage), `filtreValide`, `pro
 `n > etapeMax`), `majPastilles()` met à jour actif/fait/verrou. L'oscilloscope est isolé
 dans une IIFE exposant `window.__oscillo = { start, stop, resize }`.
 
-### spectro.html — « La photo du son » (Module Bonus) — COMPLET
-Une page bonus simplifiée, accessible à la fin du labo, centrée sur la lecture du spectrogramme. Contient 3 mini-parties :
+### pathologies.html — « Détective des pathologies » (badge : pathologies) — COMPLET
+3 mini-parties (barre d'étapes linéaire, comme le Labo) :
+1. **Comprendre la mécanique** : animation d'un cœur (SVG/emoji qui bat) + bascule entre
+   Rythme Normal, Tachycardie, Bradycardie, Fibrillation, Extrasystole, avec le signal ECG
+   théorique en dessous.
+2. **Le jeu du diagnostic (style Tinder)** : 5-6 patients max, mini-profil textuel, signal
+   ECG qui défile, 4 choix de diagnostic. Mécanique humoristique (le patient râle si erreur,
+   message de prévention si juste).
+3. **Le Patient Mystère (boss de fin)** : transition dramatique, signal brut ultra-sali ;
+   l'élève filtre, zoome, clique les pics R, pose le diagnostic. Réussir attribue le 4ᵉ
+   badge obligatoire `pathologies` et déclenche le diplôme.
 
-1. **Lire la photo du son** : 3 sons (grave, aigu, sirène) avec dessin en direct de la trace.
+### metiers.html — « Les métiers de l'ingénieur » — COMPLET
+Deux étapes : (1) **Ingénieur Réseaux & Télécoms** — choix de la qualité réseau
+(Edge / 4G / Fibre), l'ECG arrive troué ou intact ; (2) **Ingénieur Génie Logiciel** —
+construction animée de l'interface (HTML → CSS → JavaScript, le cœur se met à battre).
 
-2. **La signature du bruit** : Un battement de cœur traversé par la ligne 50 Hz, avec un bouton pour appliquer le filtre et la faire disparaître.
+### spectro.html — « La photo du son » (Bonus) — COMPLET
+Page bonus centrée sur la lecture du spectrogramme. 3 mini-parties : (1) lire la photo du
+son (3 sons : grave, aigu, sirène) ; (2) la signature du bruit (ligne 50 Hz + filtre) ;
+(3) trouve l'intrus (jeu). Technique : **aucune vraie FFT** — la « photo » est dessinée sur
+Canvas à partir d'un modèle, pour rester léger et 100 % hors-ligne.
 
-3. **Trouve l'intrus** : Un jeu où il faut cliquer sur la ligne du parasite positionnée aléatoirement.
-Technique : Aucune vraie FFT n'est calculée. La "photo" est directement dessinée sur le Canvas à partir d'un modèle (lignes horizontales pour le son continu, barres verticales pour les battements) pour plus de légèreté et un fonctionnement 100% hors-ligne fiable.
+### montre.html — « La montre du sang » (Bonus) — COMPLET
+Deux sections : taper « photopléthysmographie » lettre par lettre pour « activer le
+capteur », puis simulation LED verte + vaisseau + signal PPG. **Simulation** (pas de capteur
+réel).
 
-### pathologies.html — « Détective des pathologies » — COMPLET
-Ce module doit être découpé en 3 mini-parties distinctes (barre d'étapes linéaires, comme le Labo) :
+### piano.html — « Piano Anti-Parasite » (Bonus) — COMPLET
+Clavier (note = fréquence) puis console anti-parasite : un morceau parasité, un curseur de
+**fréquence de coupure** à régler pour retirer le parasite sans abîmer la musique ; spectre
+animé en temps réel.
 
-    Étape 1 : Comprendre la mécanique : Une zone interactive montrant une animation visuelle de cœur (ex: un SVG ou un gros emoji qui bat). Un curseur ou des boutons permettent de basculer entre : Rythme Normal, Tachycardie (le cœur bat super vite), Bradycardie (le cœur bat au ralenti), Fibrillation (le cœur tremble de façon chaotique), et Extrasystole (un raté visuel ponctuel). L'élève voit l'impact mécanique sur l'organe et le signal ECG théorique correspondant en dessous.
+### reels.html — « Coulisses Matlab » (Bonus) — COMPLET
+Trois vrais signaux ECG bruts filtrés à la main (sain, FA, FV), avec le décrochage de la
+fibrillation ventriculaire visible (~213 s). Conclusion : le filtrage rend la lecture
+possible, le zoom fait passer de « on voit des pics » à « on lit la forme d'un battement ».
 
-    Étape 2 : Le jeu du diagnostic (Style Tinder) : Un jeu de rôle séquentiel avec 5 à 6 patients max. Chaque patient a un mini-profil textuel (ex: « Papy Jean, 82 ans, grosse fatigue au réveil »). L'élève voit défiler son signal ECG et doit cliquer sur le bon diagnostic parmi 4 choix : Sain, Tachycardie, Bradycardie, Fibrillation.
-
-        Mécanique humoristique : Si l'élève se trompe, le patient "râle" avec un message personnalisé (« Aïe, vous me donnez le mauvais traitement ! »). S'il a juste, le patient est sauvé et un court message de prévention santé/sport s'affiche (« Bien joué ! Éviter le stress et courir régulièrement protège le cœur... »).
-
-    Étape 3 : Le Patient Mystère (Le Boss de fin) : Une transition graphique dramatique inspirée de Smash Bros (Silhouette noire + texte "UN NOUVEAU PATIENT MYSTÈRE ARRIVE !"). C'est l'épreuve ultime qui rassemble TOUTES les connaissances acquises : l'élève reçoit un signal brut ultra-salit, il doit lui-même le filtrer (console de nettoyage), appliquer le bon zoom, cliquer sur les pics R pour obtenir le BPM, et poser le diagnostic final pour sauver ce patient spécial.
-
-Réussir l'étape 3 attribue le 4ème badge obligatoire : pathologies (Détective Médical), déclenchant le diplôme final sur l'accueil.
-
-### écouter.html — « Oreille d'or » — COMPLET
-Explication du son du coeur en deux étape. Montre les différences pathologies en temps réel.
 ---
 
 ## 8. API de signaux.js (bibliothèque partagée)
@@ -199,11 +241,45 @@ Maths du signal/ECG (haut du fichier) :
 ⚠️ Le bas de `signaux.js` contient aussi des helpers **spécifiques à signal.html** (jeu de
 swipe, audio, spectre/animation). Ne casse pas ces parties en touchant à la lib.
 
-Note pour l'agent : Pour le module pathologies, tu devras utiliser ou étendre genererECG pour simuler facilement des rythmes lents (brady), rapides (tachy), chaotiques (fibrillation) ou avec des anomalies isolées (extrasystoles).
+Note pour l'agent : pour des rythmes lents (brady), rapides (tachy), chaotiques
+(fibrillation) ou avec anomalies isolées (extrasystoles), utilise ou étends `genererECG`.
+
 ---
 
 ## 9. Idée directrice à poursuivre & TODO
 
+**Objectif.** Enrichir le site avec **4 nouveaux modules bonus** pour étoffer l'atelier (les
+élèves adorent les bonus, et on veut occuper davantage la séance — cf. §1). **Règle de
+placement commune** : un bonus se débloque **après une section obligatoire** (même logique
+que les bonus existants, en branche depuis le parcours), sauf mention contraire ci-dessous.
+Tous restent **optionnels** (ne conditionnent pas le diplôme) et **simulés** (cf. §2).
+
+Répartition, placement et intentions :
+
+- **Réduction de bruit** — *Dima (HD)*. Placement : **juste après `signal.html`**
+  (« C'est quoi un signal ? »). Idée : montrer/entendre comment on retire le bruit d'un son
+  pour ne garder que l'utile. ⚠️ Veiller à un **angle distinct** de la section « bruit »
+  déjà présente dans `signal.html` et du bonus « Piano Anti-Parasite » (éviter le doublon ;
+  ici se concentrer sur le *débruitage* d'un son réel, comparaison avant/après).
+- **Paiement sans contact** — *Dima (HD)*. Placement : **juste après `metiers.html`**
+  (« Les métiers de l'ingénieur »). Idée : illustrer un échange d'information à très courte
+  distance (principe NFC) comme exemple de télécom du quotidien. ⚠️ **Simulation uniquement**
+  (pas de Web NFC, pas de permission) : animation du principe carte ↔ terminal.
+- **Sonar & Radar** — *Damien*. Placement : **déblocage caché (Easter Egg) sur l'accueil `index.html`** (ex: zone cliquable invisible dans un coin qui plonge l'écran dans le noir). 
+  Le module se déroule en 2 phases :
+  - **Phase 1 (Sonar)** : Écran noir, la souris crée un halo lumineux. L'élève trouve une console, lance des pings sonores, et calcule la distance (d = v*t/2) d'un sous-marin mobile en fonction du temps de retour de l'écho.
+  - **Phase 2 (Radar)** : Le décor s'éclaire (océan). Le radar balaie la zone en continu. Un graphique Plotly trace la vitesse du sous-marin en temps réel. L'élève pose des obstacles (filets) : la distance entre deux pings change, la vitesse chute sur le graphique.
+  ⚠️ **Contrainte de développement** : Ne traiter QUE ce module. Ignorer les modules de Dima (Réduction de bruit, Paiement sans contact).
+- **Types de filtres et leurs effets sur un son** — *Damien*. Placement : déblocage par court-circuit (easter egg) depuis le module Piano Anti-Parasite existant. (À développer plus tard, ne pas s'en occuper pour l'instant).
+
+**Contraintes pour TOUS les nouveaux bonus** : statique / hors-ligne / `file://`,
+`sessionStorage`, **règle des badges (§6)**, simulations pédagogiques (pas de matériel/API à
+permission), langage seconde + tutoiement + ton « fait par des étudiants », **aucune
+manipulation de code par l'élève**, réutilisation du design system (§5).
+
+**À rediscuter (Damien)** : la mécanique de déblocage « spéciale » de **Radar** et
+**Types de filtres** (pas une simple branche après un nœud) — concept à arrêter avant
+implémentation.
 
 ---
 
@@ -221,7 +297,7 @@ Note pour l'agent : Pour le module pathologies, tu devras utiliser ou étendre g
   zéro jargon non expliqué, aucune manipulation de code par l'élève.
 - Teste tes modifications dans le navigateur (oscilloscope animé, curseurs réactifs,
   verrouillage, badge attribué uniquement en fin de parcours).
-  
+
 ## 11. Dernières implémentations : Audio & Visual FX (Game Feel)
 
 ### 1. Moteur Audio (`progression.js`)

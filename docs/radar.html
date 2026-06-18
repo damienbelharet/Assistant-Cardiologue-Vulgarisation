@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sonar &amp; Radar — Lis un cœur</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body.sonar-actif { overflow: hidden; background: #000d06; margin: 0; }
+    body.sonar-actif .vignette-fond { display: none; }
+
+    /* =====================================================
+       0. ÉCRAN INTRO : PARAMÈTRES ET RÈGLES
+       ===================================================== */
+    #ecran-intro {
+      position: fixed; inset: 0; z-index: 400;
+      background: #000d06; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: opacity 0.5s ease; overflow-y: auto;
+    }
+    #lampe-masque {
+      position: fixed; inset: 0; z-index: 402; pointer-events: none; background: rgba(0,13,6,0.985); 
+    }
+    #intro-contenu {
+      position: relative; z-index: 401; width: 100%; max-width: 600px;
+      padding: 30px; text-align: center; color: rgba(0,255,100,0.8); margin: auto;
+    }
+    .intro-titre {
+      font-family: var(--titre); font-weight: 800; font-size: 2.2rem;
+      color: var(--signal); text-shadow: 0 0 16px rgba(14,159,110,0.4); margin-bottom: 20px;
+    }
+    .parametres-duel {
+      background: rgba(14,159,110,0.05); border: 1px solid rgba(14,159,110,0.2);
+      border-radius: 12px; padding: 20px; margin-bottom: 24px;
+    }
+    .noms-joueurs { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 20px; }
+    .noms-joueurs input {
+      background: #0c1f1a; border: 2px solid var(--signal-fonce); color: #fff;
+      padding: 10px 14px; border-radius: 8px; text-align: center;
+      font-family: var(--titre); font-weight: 700; font-size: 1.1rem; width: 170px; outline: none; transition: border-color 0.2s;
+    }
+    .noms-joueurs input:focus { border-color: var(--signal); box-shadow: 0 0 10px rgba(14,159,110,0.3); }
+    .vs { font-weight: 900; color: var(--signal); font-size: 1.2rem; font-family: var(--titre); }
+
+    .diff-titre { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--signal-fonce); margin-bottom: 10px; font-weight: bold; }
+    .diff-boutons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .diff-btn {
+      background: transparent; border: 2px solid var(--signal-fonce); color: var(--signal);
+      padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: var(--titre); transition: all 0.2s;
+    }
+    .diff-btn:hover { background: rgba(14,159,110,0.1); }
+    .diff-btn.actif { background: var(--signal); color: #000; box-shadow: 0 0 12px rgba(14,159,110,0.4); border-color: var(--signal); }
+
+    .intro-regles {
+      font-family: var(--texte); font-size: 1.05rem; line-height: 1.6;
+      background: rgba(14,159,110,0.05); padding: 18px; border-radius: 12px;
+      border: 1px solid rgba(14,159,110,0.2); margin-bottom: 30px; text-align: left;
+    }
+    .intro-regles ul { padding-left: 20px; margin-top: 10px; }
+    .intro-regles li { margin-bottom: 8px; }
+    .intro-regles strong { color: var(--signal); }
+
+    #btn-demarrer-intro {
+      padding: 16px 40px; background: var(--signal); border: none; border-radius: 12px;
+      color: #fff; font-family: var(--titre); font-weight: 900; font-size: 1.4rem;
+      cursor: pointer; box-shadow: 0 0 20px rgba(14,159,110,0.3); transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #btn-demarrer-intro:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(14,159,110,0.5); }
+
+    /* =====================================================
+       1. PHASE 1 — BATAILLE NAVALE PASS & PLAY
+       ===================================================== */
+    #fond-noir {
+      position: fixed; inset: 0; z-index: 300; display: none; 
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      overflow-y: auto; padding-top: 2vh; background: #000d06;
+    }
+
+    #ecran-pass-play, #ecran-victoire {
+      position: fixed; inset: 0; z-index: 9999; background: #000d06; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 24px; opacity: 1; transition: opacity 0.3s ease; padding: 20px; text-align: center;
+    }
+    .cache { opacity: 0 !important; pointer-events: none !important; display: none !important; }
+    
+    .pp-titre { font-family: var(--titre); font-weight: 800; font-size: 2.2rem; color: var(--signal); text-shadow: 0 0 20px rgba(14,159,110,0.4); white-space: pre-wrap; }
+    .pp-btn {
+      padding: 16px 32px; background: transparent; border: 3px solid var(--signal); border-radius: 12px; color: var(--signal); font-family: var(--titre);
+      font-weight: 800; font-size: 1.2rem; cursor: pointer; text-transform: uppercase; transition: all 0.2s ease; margin-top: 20px;
+    }
+    .pp-btn:hover { background: rgba(14,159,110,0.1); transform: scale(1.05); }
+    .btn-suivant { background: var(--signal); color: #000; border-color: var(--signal); padding: 10px 20px; font-size: 1rem; box-shadow: 0 4px 10px rgba(14,159,110,0.3); }
+
+    #sonar-ui { position: relative; z-index: 301; display: flex; flex-direction: column; align-items: center; padding: 10px 16px 24px; gap: 12px; width: 100%; max-width: 550px; }
+
+    .tour-indic {
+      font-family: var(--titre); font-weight: 800; font-size: 1.4rem; color: #fff; letter-spacing: 0.05em; text-align: center; background: #0c1f1a;
+      padding: 8px 24px; border-radius: 99px; border: 2px solid var(--signal); box-shadow: 0 0 15px rgba(14,159,110,0.2); transition: all 0.3s;
+    }
+    .tour-indic.eleves { border-color: var(--signal); color: var(--signal); }
+    .tour-indic.damien { border-color: #e11d48; color: #e11d48; box-shadow: 0 0 15px rgba(225,29,72,0.2); }
+    .sonar-ss-titre { font-size: 0.95rem; color: rgba(255,255,255,0.7); text-align: center; font-style: italic; }
+
+    #sonar-grid-wrap { 
+      position: relative; flex: none; width: min(450px, 92vw); height: min(450px, 92vw); 
+      background: #061410; border: 3px solid var(--signal-fonce); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    #sonar-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    #sonar-cells { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); }
+    
+    .sonar-cell { border: 1px solid rgba(14,159,110,0.15); cursor: crosshair; transition: background 0.1s; position: relative; }
+    .sonar-cell:hover { background: rgba(14,159,110,0.15); }
+    .cell-navire::after { content: "🚢"; position: absolute; inset:0; display: grid; place-items: center; font-size: 2rem; }
+    .cell-rate { background: rgba(255,255,255,0.05); cursor: not-allowed; }
+    .cell-rate::after { content: "✕"; position: absolute; inset:0; display: grid; place-items: center; color: rgba(255,255,255,0.2); font-size: 2rem; }
+    .cell-touche { background: rgba(225,29,72,0.2); border-color: #e11d48; cursor: not-allowed; }
+    .cell-touche::after { content: "💥"; position: absolute; inset:0; display: grid; place-items: center; font-size: 2rem; }
+    
+    .cell-echo-trouve { background: rgba(225,29,72,0.6) !important; box-shadow: inset 0 0 20px #e11d48; border-color: #e11d48 !important; }
+    .cell-echo-trouve::before {
+      content: "📍"; position: absolute; inset: 0; z-index: 5; font-size: 1.8rem; display: grid; place-items: center; color: #fff;
+      animation: echo-bounce 0.8s ease-in-out infinite alternate; pointer-events: none;
+    }
+    @keyframes echo-bounce { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
+
+    #sonar-console { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .joker-bar { display: flex; justify-content: space-between; align-items: center; background: #0c1f1a; padding: 12px 18px; border-radius: 8px; border: 1px solid var(--signal); }
+    .joker-count { font-family: var(--titre); font-weight: 700; color: #fff; font-size: 1rem; }
+    
+    #btn-joker {
+      padding: 10px 20px; background: transparent; border: 2px solid var(--signal); border-radius: 6px;
+      color: var(--signal); font-family: var(--titre); font-weight: 800; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; transition: all 0.2s ease;
+    }
+    #btn-joker:hover:not(:disabled) { background: rgba(14,159,110,0.15); }
+    #btn-joker:disabled { opacity: 0.3; cursor: not-allowed; border-color: gray; color: gray; }
+    #btn-joker.actif { background: var(--signal); color: #000; box-shadow: 0 0 15px rgba(14,159,110,0.4); }
+
+    .sonar-panel { padding: 12px 18px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6; }
+    #formule-panel { background: rgba(14,159,110,0.05); border: 1px solid rgba(14,159,110,0.3); color: #7effc5; display: none; }
+    .fv { color: #fff; font-weight: 700; }
+    .fr { color: #ffd700; font-weight: 700; font-size: 1.1em; }
+
+    #msg-panel { border-radius: 8px; padding: 12px 18px; font-family: var(--titre); font-weight: 700; font-size: 1rem; display: none; text-align: center; }
+    #msg-panel.info   { background: rgba(14,159,110,0.1); border:1px solid rgba(14,159,110,0.4); color: #7effc5; }
+    #msg-panel.alerte { background: rgba(225,29,72,0.1); border:1px solid rgba(225,29,72,0.4); color: #e11d48; }
+
+    #flash-transition { position: fixed; inset: 0; z-index: 9999; background: #fff; opacity: 0; pointer-events: none; }
+    @keyframes kf-flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+    #flash-transition.actif { animation: kf-flash 1.2s ease forwards; }
+
+    /* =====================================================
+       2. PHASE 2 — COURSE RADAR (DÉLIT DE FUITE - PLEIN ÉCRAN)
+       ===================================================== */
+    #phase-radar { display: none; }
+    
+    .course-wrap { 
+      display: flex; justify-content: center; align-items: center; position: relative; 
+      margin-top: 10px; width: 100%;
+    }
+    
+    /* Conteneur du jeu - S'ADAPTE AU PLEIN ÉCRAN */
+    .radar-ecran-container {
+      width: 100%; max-width: 600px; height: 750px;
+      background: #020c08; border: 3px solid var(--signal-fonce);
+      border-radius: 12px; position: relative; overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55), inset 0 0 60px rgba(14,159,110,0.08);
+      transition: all 0.3s ease;
+    }
+
+    /* Styles activés via l'API Fullscreen */
+    .radar-ecran-container:fullscreen {
+      max-width: none; width: 100vw; height: 100vh;
+      border: none; border-radius: 0;
+    }
+
+    #course-canvas { display: block; width: 100%; height: 100%; cursor: none; }
+    
+    @keyframes shake {
+      0% { transform: translate(2px, 2px) rotate(0deg); }
+      10% { transform: translate(-2px, -3px) rotate(-1deg); }
+      20% { transform: translate(-4px, 0px) rotate(1deg); }
+      30% { transform: translate(4px, 3px) rotate(0deg); }
+      40% { transform: translate(2px, -2px) rotate(1deg); }
+      50% { transform: translate(-2px, 3px) rotate(-1deg); }
+      60% { transform: translate(-4px, 1px) rotate(0deg); }
+      70% { transform: translate(4px, 1px) rotate(-1deg); }
+      80% { transform: translate(-2px, -2px) rotate(1deg); }
+      90% { transform: translate(2px, 3px) rotate(0deg); }
+      100% { transform: translate(2px, -3px) rotate(-1deg); }
+    }
+    .shake-anim { animation: shake 0.45s; }
+
+    /* HUD Course */
+    .hud-course {
+      position: absolute; top: 15px; right: 15px; background: rgba(0,20,10,0.85);
+      border: 1px solid var(--signal-fonce); padding: 12px 20px; border-radius: 8px;
+      color: #fff; font-family: monospace; text-align: right; z-index: 5;
+    }
+    .hud-vitesse { font-size: 2.6rem; font-weight: bold; color: var(--signal); line-height: 1; margin-bottom: 2px; }
+    .hud-limite { font-size: 0.9rem; color: #a8b8b2; margin-bottom: 5px; }
+
+    /* Flash Final */
+    #flash-fin-jeu {
+      position: absolute; inset: 0; background: #fff; z-index: 20; opacity: 0; pointer-events: none;
+    }
+    .flash-boom { animation: kf-flash-lourd 1.5s ease-out forwards; }
+    @keyframes kf-flash-lourd { 0% {opacity:1;} 50% {opacity:1;} 100% {opacity:0;} }
+
+    /* Overlay Démarrage Course */
+    #course-overlay {
+      position: absolute; inset: 0; background: rgba(0,18,8,0.9);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 10; padding: 20px; text-align: center;
+    }
+    #course-overlay h3 { color: var(--signal); font-family: var(--titre); font-size: 2rem; margin: 0 0 10px; }
+    #course-overlay p { color: #fff; font-size: 1rem; margin-bottom: 10px; line-height: 1.5; }
+    
+    .course-diff-boutons { display: flex; gap: 12px; justify-content: center; margin: 20px 0 30px; flex-wrap: wrap; }
+    .course-diff-btn {
+      background: rgba(0,0,0,0.5); border: 2px solid var(--signal-fonce); color: var(--signal);
+      padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: var(--titre); transition: all 0.2s; font-size: 0.95rem;
+    }
+    .course-diff-btn:hover { background: rgba(14,159,110,0.2); }
+    .course-diff-btn.actif { background: var(--signal); color: #000; box-shadow: 0 0 20px rgba(14,159,110,0.5); border-color: var(--signal); transform: scale(1.05); }
+    
+    .course-diff-btn.diff-bronze.actif { background: #d97706; border-color: #d97706; box-shadow: 0 0 20px rgba(217,119,6,0.5); }
+    .course-diff-btn.diff-or.actif { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 25px rgba(251,191,36,0.6); }
+
+    /* Modale PV (Contravention) - Positionnée en absolute dans le conteneur plein écran */
+    #modale-pv {
+      position: absolute; inset: 0; z-index: 100; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    #modale-pv.visible { opacity: 1; pointer-events: auto; }
+    
+    .pv-content {
+      background: #fbfaf6; width: 100%; max-width: 500px; border-radius: 12px;
+      padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
+      position: relative; border-top: 15px solid #e11d48;
+    }
+    .pv-header { color: #e11d48; font-family: var(--titre); font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; text-transform: uppercase; }
+    .pv-vitesse { font-family: monospace; font-size: 3.5rem; font-weight: bold; color: #000; line-height: 1; margin: 15px 0; }
+    .pv-limite { font-size: 1rem; color: #666; font-weight: bold; }
+    .pv-explication {
+      background: #f0f0f0; border-left: 4px solid #333; padding: 15px; text-align: left;
+      font-size: 0.95rem; color: #333; margin: 20px 0; line-height: 1.5; border-radius: 0 8px 8px 0;
+    }
+    .pv-medecin {
+      background: #e6f8ef; border: 1px solid var(--signal); padding: 15px; text-align: left;
+      font-size: 0.95rem; color: #0c3d2b; border-radius: 8px; margin-bottom: 25px; line-height: 1.5;
+    }
+    .pv-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+    .pv-btn { padding: 12px 20px; font-family: var(--titre); font-weight: bold; font-size: 1rem; border-radius: 8px; cursor: pointer; border: none; text-decoration: none; display: inline-block; transition: transform 0.2s; }
+    .pv-btn:hover { transform: translateY(-2px); }
+    .pv-btn-rejouer { background: #333; color: #fff; }
+    
+    .pv-badge-bronze { border: 3px solid #b45309; box-shadow: 0 4px 15px rgba(180,83,9,0.3); background: linear-gradient(135deg, #fef3c7, #fcd34d); color: #78350f; }
+    .pv-badge-argent { border: 3px solid #94a3b8; box-shadow: 0 4px 15px rgba(148,163,184,0.3); background: linear-gradient(135deg, #f8fafc, #e2e8f0); color: #334155; }
+    .pv-badge-or     { border: 3px solid #d97706; box-shadow: 0 0 25px rgba(245,158,11,0.5); background: linear-gradient(135deg, #fef08a, #f59e0b); color: #78350f; text-shadow: 0 1px 2px rgba(255,255,255,0.8); }
+
+    .radar-instructions { font-size: 1rem; color: var(--encre); text-align: center; font-weight: bold; background: #e6f8ef; padding: 16px; border-radius: 8px; border: 1px solid var(--signal); margin-bottom: 15px; }
+    #graphe-vitesse { width: 100%; height: 280px; }
+
+  </style>
+</head>
+<body class="sonar-actif">
+
+  <div id="flash-transition" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       0. INTRO : LAMPE TORCHE & PARAMÈTRES
+  ══════════════════════════════════════════════════════ -->
+  <div id="ecran-intro">
+    <div id="lampe-masque"></div>
+    <div id="intro-contenu">
+      <div class="intro-titre">📡 Duel Sonar : Bataille Navale</div>
+      
+      <div class="parametres-duel">
+        <div class="noms-joueurs">
+          <input type="text" id="input-j1" value="Élèves" placeholder="Joueur 1">
+          <span class="vs">VS</span>
+          <input type="text" id="input-j2" value="Damien" placeholder="Joueur 2">
+        </div>
+        
+        <div class="diff-titre">Niveau de difficulté (Sonar)</div>
+        <div class="diff-boutons">
+          <button class="diff-btn" data-b="5" data-j="3">Longue (5 bateaux)</button>
+          <button class="diff-btn actif" data-b="3" data-j="2">Normale (3 bateaux)</button>
+          <button class="diff-btn" data-b="1" data-j="0">Mort Subite (1 bateau)</button>
+        </div>
+      </div>
+
+      <div class="intro-regles" id="texte-regles">
+        <strong>Mission :</strong> Affrontez-vous sur le même écran !<br>
+        <ul>
+          <li>Chacun cache <strong id="txt-bateaux">3 sous-marins</strong> sur sa grille.</li>
+          <li>À votre tour, tirez pour les couler. <strong>Si tu touches, tu rejoues !</strong> Si tu rates, ton tour est fini.</li>
+          <li id="txt-jokers-ligne"><strong>Le Joker Sonar :</strong> Utilisez vos <strong id="txt-jokers">2 jokers</strong> pour émettre une onde radar. Formule : <br><strong>d = (v × t) / 2</strong>.</li>
+        </ul>
+      </div>
+      
+      <button id="btn-demarrer-intro">DÉMARRER LE DUEL</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       1. PHASE 1 — BATAILLE NAVALE PASS & PLAY
+  ══════════════════════════════════════════════════════ -->
+  <div id="ecran-pass-play" class="cache">
+    <div class="pp-titre" id="pp-titre-texte">À toi de jouer !</div>
+    <button class="pp-btn" id="btn-pass-play">C'est parti</button>
+  </div>
+
+  <div id="ecran-victoire" class="cache">
+    <div style="font-size: 4rem; margin-bottom: 10px;">🏆</div>
+    <div class="pp-titre" id="victoire-texte">VICTOIRE DE ... !</div>
+    <p style="color: rgba(255,255,255,0.7); font-size: 1.2rem; max-width: 500px; line-height: 1.5; margin-top: 15px;">
+      La flotte ennemie est détruite.<br>
+      <strong style="color: #e11d48;">Mais attendez... Un écho ultra rapide s'échappe vers le canyon !</strong><br>
+      Poursuivez-le à toute vitesse !
+    </p>
+    <button class="pp-btn" id="btn-vers-radar" style="border-color: #e11d48; color: #e11d48;">Lancer la poursuite</button>
+  </div>
+
+  <div id="fond-noir">
+    <div id="sonar-ui">
+      <div class="tour-indic eleves" id="hud-tour">ÉLÈVES</div>
+      <div class="sonar-ss-titre" id="hud-desc">Placez vos sous-marins sur la grille</div>
+
+      <div id="sonar-grid-wrap" role="grid">
+        <canvas id="sonar-canvas" aria-hidden="true"></canvas>
+        <div id="sonar-cells"></div>
+      </div>
+
+      <div id="sonar-console" style="display: none;">
+        <div class="joker-bar" id="barre-jokers-ui">
+          <span class="joker-count">📡 Jokers Sonar : <span id="joker-nb">3</span></span>
+          <button id="btn-joker" type="button">Activer</button>
+        </div>
+        <div id="formule-panel" class="sonar-panel"></div>
+        <div id="msg-panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2. PHASE 2 — LE DÉLIT DE FUITE (RUNNER)
+  ══════════════════════════════════════════════════════ -->
+  <div id="phase-radar">
+    <nav class="barre">
+      <a class="marque" href="index.html">Lis un <span>cœur</span></a>
+      <a href="index.html" class="lien">← Accueil</a>
+    </nav>
+    <main class="page">
+      <header class="mission">
+        <h1>🏎️ Le Délit de Fuite</h1>
+        <p>Prenez le contrôle du sous-marin fuyard ! Les autorités ont placé un "radar tourelle" à la sortie du canyon. Votre objectif : <strong>passer devant le radar en grand excès de vitesse pour déclencher le flash !</strong></p>
+      </header>
+
+      <div class="etapes">
+        <div class="pastille faite"><span class="num">✓</span> Phase Sonar</div>
+        <div class="pastille active"><span class="num">2</span> Course Radar</div>
+      </div>
+
+      <div class="carte">
+        <div class="radar-instructions">
+          Objectif : dépasser <strong style="color:#e11d48;" id="txt-obj-vitesse">130 km/h</strong> pour déclencher le flash du radar !
+        </div>
+        
+        <div class="course-wrap">
+          <!-- Conteneur qui passera en PLEIN ÉCRAN -->
+          <div class="radar-ecran-container" id="container-course">
+            
+            <div id="course-overlay">
+              <h3>DÉMARRAGE MOTEUR</h3>
+              <p>
+                <strong>🖱️ SOURIS :</strong> Déplace le sous-marin gauche/droite.<br><br>
+                Le moteur accélère tout seul. <strong>Esquive les mines et rochers</strong> !<br>
+                Un impact = <strong style="color:#e11d48;">−40 km/h</strong> de pénalité.
+              </p>
+              
+              <div class="diff-titre" style="color:var(--signal); margin-top:15px;">Vitesse à atteindre (Rang du Badge)</div>
+              <div class="course-diff-boutons">
+                <button class="course-diff-btn diff-bronze" data-speed="100" data-spawn="1.5" data-rank="bronze">Facile (100 km/h)</button>
+                <button class="course-diff-btn actif" data-speed="130" data-spawn="1.0" data-rank="argent">Normal (130 km/h)</button>
+                <button class="course-diff-btn diff-or" data-speed="200" data-spawn="0.6" data-rank="or">Extrême (200 km/h)</button>
+              </div>
+
+              <button class="pp-btn btn-suivant" id="btn-start-course">🚀 JOUER EN PLEIN ÉCRAN</button>
+            </div>
+
+            <div class="hud-course">
+              <div class="hud-limite" id="hud-limite-ui">OBJECTIF: 130 km/h</div>
+              <div class="hud-vitesse" id="hud-vitesse-val">30</div>
+            </div>
+
+            <canvas id="course-canvas" width="600" height="750"></canvas>
+            
+            <div id="flash-fin-jeu"></div>
+
+            <!-- MODALE PV : Déplacée à l'intérieur pour rester visible en plein écran -->
+            <div id="modale-pv">
+              <div class="pv-content">
+                <div class="pv-header">AVIS DE CONTRAVENTION</div>
+                <div class="pv-limite" id="pv-texte-limite">VITESSE LIMITÉE À : 50 km/h</div>
+                <div class="pv-vitesse" id="pv-vitesse-enregistree">134 km/h</div>
+                
+                <div class="pv-explication">
+                  <strong>Comment le radar a mesuré cette vitesse ?</strong><br>
+                  Il n'a pas pris une simple photo. Le radar a envoyé des dizaines d'ondes radio successives. Comme vous alliez très vite vers le radar, les échos sont revenus de plus en plus rapidement (les ondes se "tassent"). En comparant la différence de temps entre ces échos, l'ordinateur calcule instantanément la vitesse. C'est l'<strong>Effet Doppler</strong> !
+                </div>
+                
+                <div class="pv-medecin">
+                  <strong>🩺 Note du Médecin-Chef :</strong><br>
+                  En ingénierie biomédicale, on utilise exactement le même radar ! Sauf qu'on l'appelle une <strong>Échographie Doppler</strong>. La sonde "flashe" vos globules rouges : si le sang s'écoule trop vite ou dans le mauvais sens à l'intérieur du cœur, on peut détecter une pathologie cardiaque instantanément.
+                </div>
+                
+                <div class="pv-actions">
+                  <button class="pv-btn pv-btn-rejouer" id="btn-rejouer-modale">🔄 Rejouer la course</button>
+                  <a href="index.html?badge=radar" class="pv-btn pv-btn-badge pv-badge-argent" id="btn-retour-badge">🥈 Retour à l'accueil (Badge Argent)</a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="carte graphe">
+        <h2>📊 Télémétrie : Vitesse en temps réel</h2>
+        <p class="explication">
+          Le radar enregistre la vitesse en continu. Observez la courbe grimper et les chutes brutales !
+        </p>
+        <div id="graphe-vitesse"></div>
+      </div>
+
+      <p class="pied">Bonus Sonar &amp; Radar · ENSEIRB-MATMECA</p>
+    </main>
+  </div>
+
+  <script src="progression.js"></script>
+  <script src="lib/plotly-basic.min.js"></script>
+  <script>
+  /* =====================================================================
+     0. GESTION LAMPE TORCHE & PARAMÈTRES INTRO (BATAILLE NAVALE)
+     ===================================================================== */
+  const masque = document.getElementById('lampe-masque');
+  let lampeR = 150; 
+  function majLampe(x, y) { masque.style.background = `radial-gradient(circle ${lampeR}px at ${x}px ${y}px, transparent 0%, transparent 50%, rgba(0,13,6,0.985) 100%)`; }
+  document.addEventListener('mousemove', (e) => { if(document.getElementById('ecran-intro').style.display !== 'none') majLampe(e.clientX, e.clientY); });
+
+  let cfgBateaux = 3, cfgJokers = 2;
+  document.querySelectorAll('#ecran-intro .diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#ecran-intro .diff-btn').forEach(b => b.classList.remove('actif'));
+      btn.classList.add('actif');
+      cfgBateaux = parseInt(btn.dataset.b); cfgJokers = parseInt(btn.dataset.j);
+      document.getElementById('txt-bateaux').textContent = `${cfgBateaux} sous-marin${cfgBateaux>1?'s':''}`;
+      if (cfgJokers === 0) { document.getElementById('txt-jokers-ligne').innerHTML = "<strong>Le Joker Sonar :</strong> <em>Désactivé en mode Mort Subite ! Jouez à l'aveugle.</em>"; } 
+      else { document.getElementById('txt-jokers-ligne').innerHTML = `<strong>Le Joker Sonar :</strong> Utilisez vos <strong>${cfgJokers} jokers</strong> pour émettre une onde radar. Formule : <br><strong>d = (v × t) / 2</strong>.`; }
+    });
+  });
+
+  document.getElementById('btn-demarrer-intro').addEventListener('click', () => {
+    const intro = document.getElementById('ecran-intro');
+    let nom1 = document.getElementById('input-j1').value.trim() || "Élèves";
+    let nom2 = document.getElementById('input-j2').value.trim() || "Damien";
+    j1 = { nom: nom1, classe: "eleves", flotte: [], tirs: [], jokers: cfgJokers, pv: cfgBateaux };
+    j2 = { nom: nom2, classe: "damien", flotte: [], tirs: [], jokers: cfgJokers, pv: cfgBateaux };
+    joueurActif = j1; adversaire = j2;
+    if (cfgJokers === 0) document.getElementById('barre-jokers-ui').style.display = 'none';
+    intro.style.opacity = '0';
+    try { jouerSon('pop', 0.5); } catch(e){}
+    setTimeout(() => {
+      intro.style.display = 'none'; document.getElementById('fond-noir').style.display = 'flex';
+      lancerTransition('placement_j1', j1, j2, `Phase de placement : ${j1.nom}\n\n${j2.nom}, ne regardez pas l'écran !`);
+      setTimeout(initSonarCanvas, 50); 
+    }, 500);
+  });
+
+  /* =====================================================================
+     1. PHASE 1 — MOTEUR BATAILLE NAVALE
+     ===================================================================== */
+  const VITESSE_SON = 1500, NB_CASES = 6;
+  let etatJeu = 'intro', grilleVerrouillee = false; 
+  let sonarCtx = null, tailleCanvasBN = 0;
+
+  function creerGrille() {
+    const conteneur = document.getElementById('sonar-cells');
+    conteneur.innerHTML = '';
+    for (let r = 0; r < NB_CASES; r++) {
+      for (let c = 0; c < NB_CASES; c++) {
+        let cell = document.createElement('div'); cell.className = 'sonar-cell';
+        cell.id = `cell-${c}-${r}`; cell.dataset.c = c; cell.dataset.r = r;
+        cell.addEventListener('click', () => clicCase(c, r)); conteneur.appendChild(cell);
+      }
+    }
+  }
+
+  function initSonarCanvas() {
+    const wrap = document.getElementById('sonar-grid-wrap');
+    if(wrap.getBoundingClientRect().width === 0) return; 
+    tailleCanvasBN = Math.round(wrap.getBoundingClientRect().width) || 450;
+    const cv = document.getElementById('sonar-canvas');
+    cv.width = tailleCanvasBN; cv.height = tailleCanvasBN;
+    sonarCtx = cv.getContext('2d'); dessinerGrilleLignes();
+  }
+
+  function dessinerGrilleLignes() {
+    if(!sonarCtx) return;
+    const W = tailleCanvasBN, cp = W / NB_CASES;
+    sonarCtx.clearRect(0, 0, W, W); sonarCtx.strokeStyle = 'rgba(14,159,110,0.3)'; sonarCtx.lineWidth = 1.5;
+    for (let i = 0; i <= NB_CASES; i++) {
+      sonarCtx.beginPath(); sonarCtx.moveTo(i*cp, 0); sonarCtx.lineTo(i*cp, W); sonarCtx.stroke();
+      sonarCtx.beginPath(); sonarCtx.moveTo(0, i*cp); sonarCtx.lineTo(W, i*cp); sonarCtx.stroke();
+    }
+    sonarCtx.fillStyle = 'rgba(14,159,110,0.5)'; sonarCtx.font = `bold ${Math.round(cp*0.25)}px monospace`;
+    sonarCtx.textAlign = 'center'; sonarCtx.textBaseline = 'middle';
+    ['A','B','C','D','E','F'].forEach((lbl, c) => { sonarCtx.fillText(lbl, (c+0.5)*cp, cp*0.26); sonarCtx.fillText(c+1, cp*0.26, (c+0.5)*cp); });
+  }
+
+  function majAffichageGrille() {
+    document.querySelectorAll('.sonar-cell').forEach(cell => {
+      let aEcho = cell.classList.contains('cell-echo-trouve'); cell.className = 'sonar-cell'; if(aEcho) cell.classList.add('cell-echo-trouve');
+      let c = parseInt(cell.dataset.c), r = parseInt(cell.dataset.r);
+      if (etatJeu.startsWith('placement')) { if (joueurActif.flotte.some(b => b.c === c && b.r === r)) cell.classList.add('cell-navire'); } 
+      else {
+        let tir = joueurActif.tirs.find(t => t.c === c && t.r === r);
+        if (tir) { if (tir.touche) cell.classList.add('cell-touche'); else cell.classList.add('cell-rate'); }
+      }
+    });
+    document.getElementById('hud-tour').textContent = "TOUR : " + joueurActif.nom;
+    document.getElementById('hud-tour').className = "tour-indic " + joueurActif.classe;
+    if (etatJeu.startsWith('placement')) {
+      document.getElementById('hud-desc').textContent = `Place tes sous-marins (${joueurActif.flotte.length}/${cfgBateaux})`;
+      document.getElementById('sonar-console').style.display = 'none';
+    } else {
+      document.getElementById('hud-desc').textContent = `Cibles ennemies restantes : ${adversaire.pv} | Clique sur une case !`;
+      document.getElementById('sonar-console').style.display = 'flex';
+      document.getElementById('joker-nb').textContent = joueurActif.jokers;
+      document.getElementById('btn-joker').disabled = (joueurActif.jokers <= 0);
+      document.getElementById('formule-panel').style.display = 'none'; document.getElementById('msg-panel').style.display = 'none';
+      desactiverJoker();
+    }
+  }
+
+  function clicCase(c, r) {
+    if (grilleVerrouillee) return; 
+    if (etatJeu.startsWith('placement')) gererPlacement(c, r);
+    else if (etatJeu.startsWith('tour')) {
+      let dejaTire = joueurActif.tirs.find(t => t.c === c && t.r === r);
+      if (dejaTire && !modeJokerActif) return;
+      if (modeJokerActif) executerJokerSonar(c, r); else executerTirNormal(c, r);
+    }
+  }
+
+  function gererPlacement(c, r) {
+    let index = joueurActif.flotte.findIndex(b => b.c === c && b.r === r);
+    if (index !== -1) { joueurActif.flotte.splice(index, 1); majAffichageGrille(); try{ jouerSon('swipe', 0.5); }catch(e){} return; }
+    if (joueurActif.flotte.length < cfgBateaux) {
+      joueurActif.flotte.push({ c: c, r: r, coule: false }); majAffichageGrille(); try{ jouerSon('pop', 0.5); }catch(e){}
+      if (joueurActif.flotte.length === cfgBateaux) {
+        grilleVerrouillee = true;
+        setTimeout(() => {
+          if (etatJeu === 'placement_j1') lancerTransition('placement_j2', j2, j1, `Phase de placement : ${j2.nom}\n\n${j1.nom}, fermez les yeux !`);
+          else lancerTransition('tour_j1', j1, j2, `La bataille commence !\n\nAu tour de ${j1.nom} !`);
+        }, 600);
+      }
+    }
+  }
+
+  function executerTirNormal(c, r) {
+    grilleVerrouillee = true; 
+    let bateauTouche = adversaire.flotte.find(b => b.c === c && b.r === r); let touche = !!bateauTouche;
+    joueurActif.tirs.push({ c: c, r: r, touche: touche });
+    if (touche) {
+      bateauTouche.coule = true; adversaire.pv--; majAffichageGrille(); 
+      try{ jouerSon('victoire_module', 0.5); }catch(e){}
+      if (adversaire.pv <= 0) { afficherMsg('info', "💥 TOUS LES SOUS-MARINS SONT COULÉS !"); setTimeout(lancerEcranVictoire, 1500); } 
+      else { afficherMsg('info', "💥 TOUCHÉ ! Tu peux rejouer immédiatement !"); setTimeout(() => { grilleVerrouillee = false; }, 500); }
+    } else {
+      majAffichageGrille(); try{ jouerSon('erreur', 0.3); }catch(e){}
+      afficherBoutonPasserTour('alerte', "❌ Plouf... C'est raté. Ton tour est fini.");
+    }
+  }
+
+  document.getElementById('btn-joker').addEventListener('click', () => {
+    if (joueurActif.jokers <= 0 || grilleVerrouillee) return;
+    modeJokerActif = !modeJokerActif;
+    document.getElementById('btn-joker').classList.toggle('actif', modeJokerActif);
+    document.getElementById('hud-desc').textContent = modeJokerActif ? "📡 Mode Sonar : Clique pour émettre une onde radar" : `Cibles ennemies restantes : ${adversaire.pv}`;
+  });
+
+  function desactiverJoker() { modeJokerActif = false; document.getElementById('btn-joker').classList.remove('actif'); }
+
+  function executerJokerSonar(c, r) {
+    grilleVerrouillee = true; joueurActif.jokers--; desactiverJoker();
+    let minDist = Infinity, cible = null;
+    adversaire.flotte.forEach(sub => {
+      if (!sub.coule) { let d = Math.sqrt(Math.pow(sub.c - c, 2) + Math.pow(sub.r - r, 2)); if (d < minDist) { minDist = d; cible = sub; } }
+    });
+    if (!cible) return;
+    try{ jouerSon('trace', 0.4); }catch(e){}
+    
+    const cp = tailleCanvasBN / NB_CASES, centreX = (c + 0.5) * cp, centreY = (r + 0.5) * cp, targetRayon = minDist * cp; let currentR = 0;
+    function animerOnde() {
+      currentR += 4; dessinerGrilleLignes();
+      sonarCtx.beginPath(); sonarCtx.arc(centreX, centreY, currentR, 0, Math.PI * 2); sonarCtx.strokeStyle = 'rgba(14,159,110, 0.8)'; sonarCtx.lineWidth = 4; sonarCtx.stroke();
+      sonarCtx.beginPath(); sonarCtx.arc(centreX, centreY, currentR, 0, Math.PI * 2); sonarCtx.fillStyle = 'rgba(14,159,110, 0.15)'; sonarCtx.fill();
+      if (currentR < targetRayon) requestAnimationFrame(animerOnde);
+      else {
+        dessinerGrilleLignes(); 
+        let cellCible = document.getElementById(`cell-${cible.c}-${cible.r}`);
+        if (cellCible) cellCible.classList.add('cell-echo-trouve'); 
+        let distM = Math.round(minDist * 500); if (distM === 0) distM = 50; 
+        let t_ms = Math.round((distM * 2) / VITESSE_SON * 1000), t_s = (t_ms / 1000).toFixed(3);
+        document.getElementById('formule-panel').innerHTML = `📡 Écho détecté à <span class="fv">${t_ms} ms</span> !<br>Formule : <strong class="fv">d = (v × t) / 2</strong><br>Calcul : (1500 × ${t_s}) / 2 = <span class="fr">≈ ${distM} m</span>`;
+        document.getElementById('formule-panel').style.display = 'block';
+        afficherBoutonPasserTour('info', "📡 Analyse terminée. Lisez bien les données, puis passez au joueur suivant.");
+      }
+    }
+    requestAnimationFrame(animerOnde);
+  }
+
+  function afficherMsg(type, txt) { let p = document.getElementById('msg-panel'); p.className = type; p.innerHTML = txt; p.style.display = 'block'; }
+  function afficherBoutonPasserTour(type, msg) {
+    let p = document.getElementById('msg-panel'); p.className = type;
+    p.innerHTML = `<div style="margin-bottom: 12px;">${msg}</div><button id="btn-next-turn" class="pp-btn btn-suivant">Fin du tour ➔</button>`; p.style.display = 'block';
+    document.getElementById('btn-next-turn').addEventListener('click', () => {
+      let prochainEtat = etatJeu === 'tour_j1' ? 'tour_j2' : 'tour_j1'; lancerTransition(prochainEtat, adversaire, joueurActif, `Au tour de ${adversaire.nom} !`);
+    });
+  }
+
+  function lancerTransition(nouvelEtat, prochainJ, prochainAdv, message) {
+    const ecran = document.getElementById('ecran-pass-play'); document.getElementById('pp-titre-texte').innerText = message; ecran.classList.remove('cache'); ecran.style.display = 'flex';
+    const oldBtn = document.getElementById('btn-pass-play'), newBtn = oldBtn.cloneNode(true); oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener('click', () => {
+      etatJeu = nouvelEtat; joueurActif = prochainJ; adversaire = prochainAdv; grilleVerrouillee = false; 
+      document.querySelectorAll('.cell-echo-trouve').forEach(c => c.classList.remove('cell-echo-trouve'));
+      majAffichageGrille(); ecran.classList.add('cache'); setTimeout(() => ecran.style.display = 'none', 300);
+    });
+  }
+
+  function lancerEcranVictoire() {
+    const ecranVictoire = document.getElementById('ecran-victoire');
+    document.getElementById('victoire-texte').innerText = `VICTOIRE DE ${joueurActif.nom.toUpperCase()} !`;
+    ecranVictoire.classList.remove('cache'); ecranVictoire.style.display = 'flex';
+    try{ jouerSon('diplome', 0.8); }catch(e){}
+    document.getElementById('btn-vers-radar').addEventListener('click', finDePartie);
+  }
+
+  function finDePartie() {
+    document.getElementById('ecran-victoire').classList.add('cache');
+    let fondNoir = document.getElementById('fond-noir'); fondNoir.style.transition = 'opacity 0.6s ease'; fondNoir.style.opacity = '0';
+    document.getElementById('flash-transition').classList.add('actif');
+    try{ jouerSon('trace', 0.5); }catch(e){}
+    setTimeout(() => {
+      fondNoir.style.display = 'none'; document.getElementById('ecran-victoire').style.display = 'none';
+      document.getElementById('phase-radar').style.display = 'block'; document.body.classList.remove('sonar-actif');
+      initGrapheCourse();
+    }, 1000);
+  }
+
+  creerGrille(); window.addEventListener('resize', initSonarCanvas);
+
+  /* =====================================================================
+     2. PHASE 2 — ENDLESS RUNNER SOUS-MARIN (PLEIN ÉCRAN DYNAMIQUE)
+     ===================================================================== */
+  (function () {
+    'use strict';
+
+    /* ── Dimensions du canvas redimensionnable ── */
+    let CW = 600, CH = 750; 
+    let WALL_W   = 60;          
+    const SUB_W    = 28, SUB_H = 60;
+    const SPEED_START = 30;       
+    const CRASH_PENALTY = 40;     
+    const CRASH_MIN    = 30;      
+    const N_WALL_SEGS  = 26;      
+
+    let SPEED_WIN = 130;
+    let SPAWN_MULT = 1.0;
+    let RANK = 'argent';
+    let auto_accel = 0.043 * (SPEED_WIN / 130);
+
+    /* ── Boutons Difficulté Course ── */
+    document.querySelectorAll('.course-diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.course-diff-btn').forEach(b => b.classList.remove('actif'));
+        btn.classList.add('actif');
+        SPEED_WIN = parseInt(btn.dataset.speed);
+        SPAWN_MULT = parseFloat(btn.dataset.spawn);
+        RANK = btn.dataset.rank;
+        document.getElementById('txt-obj-vitesse').textContent = `${SPEED_WIN} km/h`;
+        document.getElementById('hud-limite-ui').textContent = `OBJECTIF: ${SPEED_WIN} km/h`;
+        document.getElementById('pv-texte-limite').textContent = `VITESSE LIMITÉE À : ${Math.floor(SPEED_WIN * 0.4)} km/h`;
+        auto_accel = 0.043 * (SPEED_WIN / 130);
+        initPlotly();
+      });
+    });
+
+    /* ── État ── */
+    let cv, ctx, animId;
+    let jeuEnCours = false, jeuFige = false, victoire = false;
+    let subX = CW / 2, mouseX = CW / 2;
+    let vitesse = SPEED_START, frames = 0, scrollY = 0, flashRed = 0;
+    let obstacles = [], bulles = [], sillagePoints = [];
+    let plotT = [], plotV = [], annots = [], dernierPt = -1, plotInit = false;
+    let hudVit, container;
+
+    /* ── Parois ── */
+    const wL = [], wR = [];
+    function genParois() {
+      wL.length = 0; wR.length = 0;
+      for (let i = 0; i < N_WALL_SEGS + 1; i++) {
+        wL.push(WALL_W + (Math.random() * 26 - 13));
+        wR.push(CW - WALL_W + (Math.random() * 26 - 13));
+      }
+    }
+
+    /* ── Mouse ── */
+    function onMouse(e) {
+      if (!cv) return;
+      const r = cv.getBoundingClientRect();
+      mouseX = (e.clientX - r.left) * (CW / r.width);
+      mouseX = Math.max(wL[0] + SUB_W / 2 + 6, Math.min(wR[0] - SUB_W / 2 - 6, mouseX));
+    }
+
+    /* ── Redimensionnement ── */
+    function majDimensions() {
+      if (document.fullscreenElement) {
+        CW = window.innerWidth;
+        CH = window.innerHeight;
+        // On adapte les murs à la nouvelle taille
+        WALL_W = Math.floor(CW * 0.1); 
+      } else {
+        CW = 600;
+        CH = 750;
+        WALL_W = 60;
+      }
+      cv.width = CW;
+      cv.height = CH;
+      genParois();
+      subX = Math.min(Math.max(subX, wL[0] + 20), wR[0] - 20);
+    }
+
+    document.addEventListener('fullscreenchange', majDimensions);
+
+    /* ── Init ── */
+    function initPhase2() {
+      cv = document.getElementById('course-canvas');
+      cv.width = CW; cv.height = CH;
+      ctx = cv.getContext('2d');
+      hudVit    = document.getElementById('hud-vitesse-val');
+      container = document.getElementById('container-course');
+
+      genParois();
+      document.getElementById('course-overlay').style.display = 'flex';
+      
+      document.getElementById('btn-start-course').onclick = async function (ev) {
+        ev.stopPropagation();
+        
+        // Tentative de passage en plein écran
+        try {
+          if (container.requestFullscreen) await container.requestFullscreen();
+          else if (container.webkitRequestFullscreen) await container.webkitRequestFullscreen();
+        } catch(e) { console.warn("Plein écran bloqué ou non supporté", e); }
+        
+        document.getElementById('course-overlay').style.display = 'none';
+        
+        // Délai pour laisser l'API Fullscreen s'appliquer et redimensionner le canvas
+        setTimeout(() => {
+          majDimensions();
+          lancerCourse();
+        }, 200);
+      };
+      
+      initPlotly();
+    }
+    window.initGrapheCourse = initPhase2;
+
+    function lancerCourse() {
+      vitesse = SPEED_START; frames = 0; scrollY = 0;
+      subX = CW / 2; mouseX = CW / 2;
+      obstacles = []; bulles = []; sillagePoints = [];
+      flashRed = 0; jeuFige = false; victoire = false;
+      plotT = []; plotV = []; annots = []; dernierPt = -1;
+      container.classList.remove('shake-anim');
+      if (animId) cancelAnimationFrame(animId);
+      cv.addEventListener('mousemove', onMouse);
+      jeuEnCours = true;
+      initPlotly();
+      boucle();
+    }
+
+    /* ── Boutons de fin ── */
+    document.getElementById('btn-rejouer-modale').addEventListener('click', () => {
+      document.getElementById('modale-pv').classList.remove('visible');
+      document.getElementById('flash-fin-jeu').classList.remove('flash-boom');
+      jeuEnCours = false;
+      if (animId) cancelAnimationFrame(animId);
+      cv.removeEventListener('mousemove', onMouse);
+      setTimeout(() => document.getElementById('course-overlay').style.display = 'flex', 300);
+    });
+
+    document.getElementById('btn-retour-badge').addEventListener('click', () => {
+       if (document.fullscreenElement) document.exitFullscreen();
+    });
+
+    /* ════════════════════════════════════════════════
+       BOUCLE PRINCIPALE
+    ════════════════════════════════════════════════ */
+    function boucle() {
+      if (!jeuEnCours) return;
+
+      if (!jeuFige) {
+        frames++;
+        vitesse = Math.min(SPEED_WIN + 5, vitesse + auto_accel);
+        subX += (mouseX - subX) * 0.12;
+
+        const spd = 2 + vitesse * 0.08;   
+        scrollY = (scrollY + spd) % 120;
+
+        // On adapte le taux de spawn à la largeur de l'écran pour que ça ne soit pas trop vide en plein écran 1080p
+        const ratioLargeur = CW / 600;
+        const baseRate = Math.max(12, 85 - Math.floor(vitesse * 0.6));
+        const rate = Math.max(6, Math.floor((baseRate * SPAWN_MULT) / ratioLargeur)); 
+        
+        if (frames % rate === 0) {
+          const lx = wL[0] + 15, rx = wR[0] - 15;
+          obstacles.push({
+            x: lx + Math.random() * (rx - lx),
+            y: -40,
+            r: 18 + Math.random() * 16,
+            type: Math.random() < 0.47 ? 'mine' : 'rock',
+            rot: Math.random() * Math.PI * 2, drot: (Math.random() - 0.5) * 0.02
+          });
+        }
+
+        if (frames % 3 === 0) {
+          bulles.push({
+            x: wL[0] + 8 + Math.random() * (CW - 2 * WALL_W - 16),
+            y: -6, r: 1.5 + Math.random() * 3.5,
+            al: 0.08 + Math.random() * 0.25,
+            v: spd * (0.4 + Math.random() * 0.7)
+          });
+        }
+
+        sillagePoints.unshift({ x: subX, y: CH - 110 });
+        if (sillagePoints.length > 22) sillagePoints.pop();
+
+        const t = frames / 60;
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const ob = obstacles[i];
+          ob.y += spd;
+          ob.rot += ob.drot;
+          if (ob.y > CH + 60) { obstacles.splice(i, 1); continue; }
+          const dx = subX - ob.x, dy = (CH - 110) - ob.y;
+          if (Math.sqrt(dx * dx + dy * dy) < ob.r * 0.82 + 15) {
+            const prev = vitesse;
+            vitesse = Math.max(CRASH_MIN, vitesse - CRASH_PENALTY);
+            obstacles.splice(i, 1);
+            flashRed = 14;
+            container.classList.remove('shake-anim');
+            void container.offsetWidth;
+            container.classList.add('shake-anim');
+            try { jouerSon('erreur', 0.5); } catch (e) {}
+            annots.push({
+              x: +t.toFixed(1), y: Math.round(prev),
+              text: '💥 IMPACT', showarrow: true, arrowhead: 2, arrowcolor: '#e11d48',
+              font: { color: '#e11d48', size: 10 },
+              ax: 0, ay: -32, bordercolor: '#e11d48', borderwidth: 1,
+              bgcolor: '#fff', borderpad: 2
+            });
+            break;
+          }
+        }
+
+        for (let i = bulles.length - 1; i >= 0; i--) {
+          bulles[i].y += bulles[i].v; bulles[i].al -= 0.006;
+          if (bulles[i].y > CH + 10 || bulles[i].al <= 0) bulles.splice(i, 1);
+        }
+
+        if (flashRed > 0) flashRed--;
+
+        if (vitesse >= SPEED_WIN && !victoire) {
+          victoire = true; jeuFige = true;
+          const tv = +t.toFixed(1);
+          annots.push({
+            x: tv, y: Math.round(vitesse),
+            text: '📸 FLASH !', showarrow: true, arrowhead: 2, arrowcolor: '#e11d48',
+            font: { color: '#e11d48', size: 12 },
+            ax: 0, ay: -40, bordercolor: '#e11d48', borderwidth: 2,
+            bgcolor: '#fff', borderpad: 3
+          });
+          plotT.push(tv); plotV.push(Math.round(vitesse));
+          majPlotly();
+          try { jouerSon('victoire_module', 0.6); } catch (e) {}
+          document.getElementById('flash-fin-jeu').classList.add('flash-boom');
+          document.getElementById('pv-vitesse-enregistree').textContent = Math.floor(vitesse) + ' km/h';
+          
+          let btnBadge = document.getElementById('btn-retour-badge');
+          btnBadge.className = `pv-btn pv-btn-badge pv-badge-${RANK}`;
+          btnBadge.href = `index.html?badge=radar&rang=${RANK}`;
+          if(RANK === 'or') btnBadge.innerHTML = '🏆 Retour à l\'accueil (Badge Or)';
+          else if(RANK === 'argent') btnBadge.innerHTML = '🥈 Retour à l\'accueil (Badge Argent)';
+          else btnBadge.innerHTML = '🥉 Retour à l\'accueil (Badge Bronze)';
+
+          setTimeout(() => {
+            document.getElementById('modale-pv').classList.add('visible');
+            if (typeof validerModule === 'function') validerModule('radar');
+            try { jouerSon('diplome', 0.7); } catch (e) {}
+            cv.removeEventListener('mousemove', onMouse);
+          }, 1200);
+        }
+
+        const tr = +t.toFixed(1);
+        if (tr - dernierPt >= 0.3) { dernierPt = tr; plotT.push(tr); plotV.push(Math.round(vitesse)); majPlotly(); }
+      }
+
+      dessiner();
+
+      const v = Math.floor(vitesse);
+      hudVit.textContent = v;
+      hudVit.style.color = v >= (SPEED_WIN - 20) ? '#e11d48' : v >= (SPEED_WIN - 50) ? '#f59e0b' : 'var(--signal)';
+
+      animId = requestAnimationFrame(boucle);
+    }
+
+    /* ════════════════════════════════════════════════
+       RENDU CANVAS
+    ════════════════════════════════════════════════ */
+    function dessiner() {
+      ctx.clearRect(0, 0, CW, CH);
+
+      const bg = ctx.createLinearGradient(0, 0, 0, CH);
+      bg.addColorStop(0, '#001c11'); bg.addColorStop(0.55, '#000e08'); bg.addColorStop(1, '#000805');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
+
+      if (flashRed > 0) { ctx.fillStyle = `rgba(225,29,72,${flashRed / 14 * 0.42})`; ctx.fillRect(0, 0, CW, CH); }
+
+      dessinerParois();
+
+      const spd = 2 + vitesse * 0.08;
+      ctx.strokeStyle = 'rgba(14,159,110,0.055)'; ctx.lineWidth = 1;
+      for (let y = (scrollY % 120) - 120; y < CH + 120; y += 120) {
+        ctx.beginPath(); ctx.moveTo(wL[0], y); ctx.lineTo(wR[0], y); ctx.stroke();
+      }
+
+      bulles.forEach(b => {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(126,255,197,${b.al})`; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+
+      sillagePoints.forEach((s, i) => {
+        const a = (1 - i / sillagePoints.length) * 0.65;
+        ctx.globalAlpha = a; ctx.fillStyle = '#34d399';
+        const r = Math.max(0.8, 6 - i * 0.25);
+        ctx.beginPath(); ctx.arc(s.x, s.y + i * 5, r, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      obstacles.forEach(ob => ob.type === 'mine' ? dessinerMine(ob) : dessinerRocher(ob));
+      dessinerSousMarin();
+    }
+
+    function dessinerParois() {
+      const segH = CH / N_WALL_SEGS;
+
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wL[i % (N_WALL_SEGS + 1)], i * segH);
+      ctx.lineTo(0, CH); ctx.closePath();
+      const gL = ctx.createLinearGradient(0, 0, WALL_W + 30, 0);
+      gL.addColorStop(0, '#030f08'); gL.addColorStop(1, '#0b271a');
+      ctx.fillStyle = gL; ctx.fill();
+      ctx.beginPath();
+      for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wL[i % (N_WALL_SEGS + 1)], i * segH);
+      ctx.strokeStyle = 'rgba(14,159,110,0.6)'; ctx.lineWidth = 2.5; ctx.stroke();
+
+      ctx.beginPath(); ctx.moveTo(CW, 0);
+      for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wR[i % (N_WALL_SEGS + 1)], i * segH);
+      ctx.lineTo(CW, CH); ctx.closePath();
+      const gR = ctx.createLinearGradient(CW - WALL_W - 30, 0, CW, 0);
+      gR.addColorStop(0, '#0b271a'); gR.addColorStop(1, '#030f08');
+      ctx.fillStyle = gR; ctx.fill();
+      ctx.beginPath();
+      for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wR[i % (N_WALL_SEGS + 1)], i * segH);
+      ctx.strokeStyle = 'rgba(14,159,110,0.6)'; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    function dessinerRocher(ob) {
+      ctx.save();
+      ctx.translate(ob.x, ob.y); ctx.rotate(ob.rot);
+      ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 15;
+      const g = ctx.createRadialGradient(-ob.r * 0.22, -ob.r * 0.28, ob.r * 0.04, 0, 0, ob.r);
+      g.addColorStop(0, '#8a6038'); g.addColorStop(0.55, '#4e3018'); g.addColorStop(1, '#1c1008');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      const pts = [[0,-1],[0.75,-0.44],[0.9,0.25],[0.42,0.98],[-0.3,0.92],[-0.88,0.2],[-0.92,-0.38],[-0.44,-0.86]];
+      ctx.moveTo(pts[0][0] * ob.r, pts[0][1] * ob.r);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * ob.r, pts[i][1] * ob.r);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(140,96,42,0.55)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.globalAlpha = 0.28; ctx.fillStyle = '#e8b870'; ctx.beginPath();
+      ctx.moveTo(-ob.r*0.18, -ob.r*0.62); ctx.lineTo(ob.r*0.08, -ob.r*0.34);
+      ctx.lineTo(-ob.r*0.06, -ob.r*0.22); ctx.lineTo(-ob.r*0.28, -ob.r*0.5);
+      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
+    }
+
+    function dessinerMine(ob) {
+      ctx.save(); ctx.translate(ob.x, ob.y);
+      ctx.shadowColor = '#e11d48'; ctx.shadowBlur = 22;
+      const g = ctx.createRadialGradient(-ob.r*0.25, -ob.r*0.25, ob.r*0.04, 0, 0, ob.r * 0.8);
+      g.addColorStop(0, '#a80a30'); g.addColorStop(1, '#2d0508');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, ob.r * 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 3;
+      for (let a = 0; a < 8; a++) {
+        const ang = a * Math.PI / 4; ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * ob.r * 0.8, Math.sin(ang) * ob.r * 0.8);
+        ctx.lineTo(Math.cos(ang) * ob.r * 1.18, Math.sin(ang) * ob.r * 1.18); ctx.stroke();
+      }
+      if (frames % 38 < 19) {
+        ctx.fillStyle = '#ff4d6d'; ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function dessinerSousMarin() {
+      const sy = CH - 110;
+      ctx.save(); ctx.translate(subX, sy);
+
+      const wLen = 22 + vitesse * 0.42;
+      const wAlpha = Math.min(0.9, vitesse / 85);
+      if (wAlpha > 0.05) {
+        ctx.globalAlpha = wAlpha;
+        for (const sx of [-7, 7]) {
+          const wg = ctx.createLinearGradient(sx, SUB_H / 2, sx, SUB_H / 2 + wLen);
+          wg.addColorStop(0, 'rgba(126,255,197,0.9)'); wg.addColorStop(0.5, 'rgba(14,159,110,0.4)'); wg.addColorStop(1, 'rgba(14,159,110,0)');
+          ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx - 5, SUB_H / 2);
+          ctx.quadraticCurveTo(sx - 8, SUB_H / 2 + wLen * 0.45, sx - 3, SUB_H / 2 + wLen);
+          ctx.quadraticCurveTo(sx + 3, SUB_H / 2 + wLen, sx + 8, SUB_H / 2 + wLen * 0.45);
+          ctx.quadraticCurveTo(sx + 5, SUB_H / 2, sx, SUB_H / 2); ctx.closePath(); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      if (vitesse > 55) {
+        const ga = Math.min(0.45, (vitesse - 55) / 75);
+        ctx.globalAlpha = ga; ctx.shadowColor = '#0e9f6e'; ctx.shadowBlur = 35; ctx.fillStyle = 'rgba(14,159,110,0.1)';
+        ctx.beginPath(); ctx.ellipse(0, 2, SUB_W / 2 + 16, SUB_H / 2 + 16, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      }
+
+      const hg = ctx.createLinearGradient(-SUB_W / 2, 0, SUB_W / 2, 0);
+      hg.addColorStop(0, '#054f39'); hg.addColorStop(0.35, '#10b981'); hg.addColorStop(0.65, '#10b981'); hg.addColorStop(1, '#054f39');
+      ctx.fillStyle = hg; ctx.shadowColor = 'rgba(16,185,129,0.5)'; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.moveTo(0, -SUB_H / 2);
+      ctx.bezierCurveTo( SUB_W * 0.72, -SUB_H * 0.18,  SUB_W / 2, SUB_H * 0.16, SUB_W / 2, SUB_H * 0.32);
+      ctx.bezierCurveTo( SUB_W / 2, SUB_H * 0.46,  SUB_W * 0.3, SUB_H / 2, 0, SUB_H / 2);
+      ctx.bezierCurveTo(-SUB_W * 0.3, SUB_H / 2, -SUB_W / 2, SUB_H * 0.46, -SUB_W / 2, SUB_H * 0.32);
+      ctx.bezierCurveTo(-SUB_W / 2, SUB_H * 0.16, -SUB_W * 0.72, -SUB_H * 0.18, 0, -SUB_H / 2);
+      ctx.fill(); ctx.strokeStyle = '#34d399'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#054f39'; ctx.strokeStyle = '#34d399'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.ellipse(0, -SUB_H * 0.07, 6, 13, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = '#0b6b4c';
+      for (const dir of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(dir * SUB_W / 2, 2); ctx.lineTo(dir * (SUB_W / 2 + 12), 10);
+        ctx.lineTo(dir * (SUB_W / 2 + 9), 20); ctx.lineTo(dir * SUB_W / 2, 16); ctx.closePath(); ctx.fill();
+      }
+
+      ctx.fillStyle = '#7effc5'; ctx.shadowColor = '#7effc5'; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(0, -SUB_H * 0.07, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+
+      const pa = frames * 0.32; ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2.5;
+      for (let b = 0; b < 3; b++) {
+        const a = pa + b * Math.PI * 2 / 3; ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 3, SUB_H / 2 - 4 + Math.sin(a) * 3); ctx.lineTo(Math.cos(a) * 10, SUB_H / 2 - 4 + Math.sin(a) * 10); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* ── Plotly ── */
+    const PLOTLY_LAYOUT = () => ({
+      paper_bgcolor: 'transparent', plot_bgcolor: '#f9fdfb', margin: { t: 18, r: 18, b: 45, l: 58 },
+      xaxis: { title: 'Temps (s)' }, yaxis: { title: 'Vitesse (km/h)', range: [0, SPEED_WIN + 25] },
+      shapes: [{ type: 'line', x0: 0, x1: 1, xref: 'paper', y0: SPEED_WIN, y1: SPEED_WIN, yref: 'y', line: { color: '#e11d48', width: 2, dash: 'dash' } }]
+    });
+    const PLOTLY_TRACE = () => ({ x: plotT, y: plotV, type: 'scatter', fill: 'tozeroy', fillcolor: 'rgba(14,159,110,0.08)', line: { color: '#0e9f6e', width: 3, shape: 'spline' }, marker: { size: 4, color: '#0e9f6e' } });
+    const baseAnnot = () => ({ x: 1, xref: 'paper', y: SPEED_WIN, yref: 'y', text: `📸 ${SPEED_WIN} km/h`, showarrow: false, font: { color: '#e11d48', size: 11 }, xanchor: 'right', yanchor: 'bottom' });
+
+    function initPlotly() {
+      if (typeof Plotly === 'undefined') return;
+      try { Plotly.newPlot('graphe-vitesse', [PLOTLY_TRACE()], { ...PLOTLY_LAYOUT(), annotations: [baseAnnot()] }, { responsive: true, displayModeBar: false }); plotInit = true; } catch (e) {}
+    }
+    function majPlotly() {
+      if (!plotInit) return;
+      try { Plotly.react('graphe-vitesse', [PLOTLY_TRACE()], { ...PLOTLY_LAYOUT(), annotations: [baseAnnot(), ...annots] }); } catch (e) {}
+    }
+
+    if (document.getElementById('phase-radar').style.display === 'block') initPhase2();
+
+  }()); 
+  </script>
+</body>
+</html>

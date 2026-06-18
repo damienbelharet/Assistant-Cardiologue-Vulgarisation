@@ -558,8 +558,9 @@
     .donnees-cachees { display: none !important; }
 
     /* --- Couleur du module bonus "bruit" (ardoise, esprit silence) --- */
-    .module-bruit { --accent: #475569; --accent-soft: #eef1f5; }
-    .module-nfc   { --accent: #ea580c; --accent-soft: #fdeadd; }
+    .module-bruit  { --accent: #475569; --accent-soft: #eef1f5; }
+    .module-nfc    { --accent: #ea580c; --accent-soft: #fdeadd; }
+    .module-radar  { --accent: #e11d48; --accent-soft: #fde7ec; }
 
     /* --- Badge tag bonus (utilisé dans le JS de la grille) --- */
     .badge-tag-bonus {
@@ -987,6 +988,9 @@
         <line id="branche-nfc" x1="300" y1="880" x2="470" y2="806"
               stroke="#d4deda" stroke-width="8" stroke-linecap="round"
               style="opacity:0"/>
+        <line id="branche-radar" x1="300" y1="880" x2="300" y2="980"
+              stroke="#d4deda" stroke-width="8" stroke-linecap="round"
+              style="opacity:0"/>
 
         <!-- Étoiles décoratives sur les embranchements -->
       </svg>
@@ -1150,6 +1154,16 @@
         <div class="noeud-label">Le bip magique</div>
       </div>
 
+      <div class="noeud noeud-bonus module-radar" id="lien-radar"
+           style="left:50%;top:100%; display:none; --accent:#e11d48; --accent-soft:#fde7ec;">
+        <a href="radar.html" class="noeud-btn" aria-label="Bonus : Duel Sonar">
+          <span class="noeud-emoji" aria-hidden="true">📡</span>
+          <span class="noeud-num" id="badge-radar">★</span>
+          <div class="sparkles" aria-hidden="true"><div class="sparkle"></div><div class="sparkle"></div><div class="sparkle"></div></div>
+        </a>
+        <div class="noeud-label" style="color: #e11d48;">Duel Sonar</div>
+      </div>
+
     </div><!-- /.chemin-wrap -->
 
     <!--
@@ -1223,6 +1237,15 @@
       </div>
     </div>
 
+    <!-- Indice de l'Easter Egg (Boss Secret) -->
+    <div id="indice-echo" class="carte" style="display: none; border-color: #e11d48; background: #0c0204; color: #ff4d6d; text-align: center; margin-bottom: 24px; box-shadow: 0 0 20px rgba(225,29,72,0.2);">
+      <h2 style="color: #e11d48; font-size: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;">⚠️ Anomalie Détectée</h2>
+      <p style="font-family: monospace; letter-spacing: 1px; font-size: 1rem; line-height: 1.6;">
+        Tous les signaux connus sont purs... mais un écho fantôme persiste dans les abysses.<br>
+        Tapez le code d'accès <strong style="color: #fff; background: #e11d48; padding: 2px 8px; border-radius: 4px;">E C H O</strong> sur votre clavier pour l'intercepter.
+      </p>
+    </div>
+
     <!-- ══ Section progression détaillée ══ -->
     <section class="progression-section" id="section-progression">
       <h2>🏅 Ta progression</h2>
@@ -1260,7 +1283,8 @@
     { id: "montre",      module: "La montre qui voit le sang", bonus: true },
     { id: "filtre",      module: "Le Piano Anti-Parasite",     bonus: true },
     { id: "bruit",       module: "La Chasse au Bruit",         bonus: true },
-    { id: "nfc",         module: "Le Bip Magique",             bonus: true }
+    { id: "nfc",         module: "Le Bip Magique",             bonus: true },
+    { id: "radar",       module: "Duel Sonar",                 bonus: true }
   ];
 
   /* Métadonnées pour la modale de chaque module principal */
@@ -2302,6 +2326,61 @@
       setTimeout(function() { overlay.style.display = "none"; }, 300);
     }
   };
+
+  /* =====================================================================
+     EASTER EGG "E C H O" — Boss Secret Radar
+     ===================================================================== */
+  var seqEcho = "";
+  document.addEventListener("keydown", function(e) {
+    if (e.key && e.key.length === 1) {
+      seqEcho += e.key.toLowerCase();
+      if (seqEcho.length > 4) seqEcho = seqEcho.slice(-4);
+
+      if (seqEcho === "echo") {
+        seqEcho = "";
+        if (typeof jouerSon === "function") jouerSon("trace", 0.6);
+
+        var voile = document.createElement("div");
+        voile.style.cssText = "position:fixed;inset:0;background:#000d06;opacity:0;z-index:99999;transition:opacity 1.2s ease;";
+        document.body.appendChild(voile);
+
+        requestAnimationFrame(function() {
+          voile.style.opacity = "1";
+          setTimeout(function() { window.location.href = "radar.html"; }, 1400);
+        });
+      }
+    }
+  });
+
+  /* Patch de mettreAJour pour gérer l'indice et le nœud radar */
+  var _ancienneMettreAJour = mettreAJour;
+  mettreAJour = function() {
+    _ancienneMettreAJour();
+
+    if (window._animationEnCours) return;
+
+    var radarFait        = moduleValide("radar");
+    var tousAutresBonusFaits = ["curieux", "matlab", "montre", "filtre", "bruit", "nfc"].every(moduleValide);
+
+    var indiceEl = document.getElementById("indice-echo");
+    if (indiceEl) {
+      indiceEl.style.display = (tousAutresBonusFaits && !radarFait) ? "block" : "none";
+    }
+
+    var noeudRadar   = document.getElementById("lien-radar");
+    var brancheRadar = document.getElementById("branche-radar");
+    if (radarFait && noeudRadar) {
+      noeudRadar.style.display = "flex";
+      noeudRadar.classList.add("fait");
+      if (brancheRadar) {
+        brancheRadar.style.opacity = "1";
+        brancheRadar.setAttribute("stroke", "#e11d48");
+      }
+    }
+  };
+
+  /* Appliquer le patch immédiatement */
+  mettreAJour();
   </script>
 
   <!-- ══ Canvas fond interactif : particules + impulsion ECG au clic ══ -->
