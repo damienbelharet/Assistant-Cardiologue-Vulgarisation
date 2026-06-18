@@ -11,7 +11,7 @@
        STYLES LOCAUX · nfc.html
        Accent de la mission : orange "terminal"
        ═══════════════════════════════════════════ */
-    :root { --nfc: #10b981; --nfc-doux: #fdeed7; }
+    :root { --nfc: #d97706; --nfc-doux: #fdeed7; }
 
     .mission.nfc { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
@@ -141,8 +141,8 @@
   <header class="mission nfc">
     <h1>💳 Le bip magique</h1>
     <p>Tu poses ta carte, ça fait <strong>« bip »</strong>, c'est payé. En vrai, c'est une vraie petite
-       <strong>communication radio</strong> en 4 étapes. Cette fois, <strong>c'est toi la carte</strong>&nbsp;:
-       à toi d'établir la liaison, de capter l'énergie, d'envoyer ton code, et de le faire valider.</p>
+       <strong>communication radio</strong> en 4 étapes. Cette fois, <strong>tu es aux commandes de la carte</strong>&nbsp;:
+       à toi d'établir la liaison, de capter l'énergie, d'envoyer son code, et de le faire valider.</p>
   </header>
 
   <div class="etapes" id="suivi">
@@ -165,7 +165,7 @@
     <div class="scene-nfc" id="scene1">
       <div class="terminal"><span>🟩</span><span class="etiq">Terminal</span></div>
       <div class="carte-nfc" id="carte1" style="transform: translateX(90px);">
-        <span>💳</span><span class="etiq">Toi</span><span class="reveil">📶</span>
+        <span>💳</span><span class="etiq">Carte</span><span class="reveil">📶</span>
       </div>
     </div>
 
@@ -195,7 +195,7 @@
 
   <!-- ════════ ÉTAPE 2 · ACCORD EN FRÉQUENCE ════════ -->
   <section class="carte bloquee" id="sec-2">
-    <h2><span class="num-etape">2</span>Accorde-toi sur la porteuse</h2>
+    <h2><span class="num-etape">2</span>Accorde la carte sur la porteuse</h2>
     <p class="explication">
       Ta carte <strong>n'a pas de pile</strong> 🔋🚫 ! Elle se nourrit de l'onde du terminal, appelée la
       <strong>porteuse</strong>. Mais elle ne capte un maximum d'énergie que si le terminal émet sur la
@@ -206,7 +206,7 @@
     <div class="scene-nfc" id="scene2">
       <div class="ondes" aria-hidden="true"><span class="onde"></span><span class="onde"></span><span class="onde"></span></div>
       <div class="terminal"><span>🟩</span><span class="etiq">Terminal</span></div>
-      <div class="carte-nfc" id="carte2"><span>💳</span><span class="etiq">Toi</span><span class="reveil">⚡</span></div>
+      <div class="carte-nfc" id="carte2"><span>💳</span><span class="etiq">Carte</span><span class="reveil">⚡</span></div>
     </div>
 
     <div class="reglage">
@@ -229,11 +229,11 @@
 
   <!-- ════════ ÉTAPE 3 · MODULER LE CODE ════════ -->
   <section class="carte bloquee" id="sec-3">
-    <h2><span class="num-etape">3</span>Envoie ton code en le modulant</h2>
+    <h2><span class="num-etape">3</span>Envoie le code en le modulant</h2>
     <p class="explication">
-      Réveillée, la carte doit répondre. Pour envoyer un message sans fil, tu <strong>modifies l'onde</strong> :
+      Réveillée, la carte doit répondre. Pour envoyer un message sans fil, elle <strong>modifie l'onde</strong> :
       une onde <strong>haute</strong> = un <strong>1</strong>, une onde <strong>basse</strong> = un <strong>0</strong>.
-      Ça s'appelle la <strong>modulation</strong>. Voici ton code secret en binaire&nbsp;: envoie-le bit par bit&nbsp;!
+      Ça s'appelle la <strong>modulation</strong>. Voici le code secret de la carte en binaire&nbsp;: envoie-le bit par bit&nbsp;!
     </p>
 
     <div class="bit-piste" id="piste-bits"><!-- cases injectées par JS --></div>
@@ -256,7 +256,7 @@
   <section class="carte bloquee" id="sec-4">
     <h2><span class="num-etape">4</span>Le terminal décode et vérifie</h2>
     <p class="explication">
-      Le terminal reçoit ta séquence et la <strong>décode</strong>. Pour repérer les erreurs, tu as ajouté un
+      Le terminal reçoit ta séquence et la <strong>décode</strong>. Pour repérer les erreurs, la carte ajoute un
       <strong>bit de contrôle</strong> (en pointillé)&nbsp;: il vaut 1 si le nombre de 1 est impair, 0 s'il est pair.
       Le terminal recompte. Mais le bruit a abîmé un bit en route… Lance la vérification&nbsp;:
     </p>
@@ -290,7 +290,7 @@
     <h2>Badge obtenu : Maître du Sans-Contact&nbsp;!</h2>
     <p class="explication" style="text-align:center; max-width:520px; margin:0 auto 22px;">
       Tu as fait tout le travail de la carte&nbsp;: établir la <strong>liaison radio</strong> malgré le bruit,
-      t'<strong>accorder</strong> sur la porteuse pour capter l'énergie, <strong>moduler</strong> ton code en
+      l'<strong>accorder</strong> sur la porteuse pour capter l'énergie, <strong>moduler</strong> son code en
       binaire, puis le faire <strong>décoder</strong> et vérifier par le terminal. Le « bip », c'est ça&nbsp;:
       de la télécom bien réglée.
     </p>
@@ -300,7 +300,7 @@
     </a>
   </section>
 
-  <p class="pied">Réalisé par <strong>Damien Belharet &amp; Dima Husseini</strong> — Stage ENSEIRB-MATMECA · Département Télécommunications</p>
+  <p class="pied">Réalisé par <strong>Damien Belharet &amp; Dima Husseini</strong> · Stage ENSEIRB-MATMECA · Département Télécommunications</p>
 </main>
 
 <script src="progression.js"></script>
@@ -327,7 +327,6 @@
     if (suiv && suiv.classList.contains('bloquee')) {
       suiv.classList.remove('bloquee');
       suiv.classList.add('revele');
-      setTimeout(function () { suiv.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
     }
     if (n === 3) preparerDecodage();
     if (n === 4) revelerBadge();

@@ -557,8 +557,6 @@
     /* --- Sources cachées pour la modale --- */
     .donnees-cachees { display: none !important; }
 
-    /* --- Couleur du module bonus "bruit" (ardoise, esprit silence) --- */
-    .module-bruit  { --accent: #475569; --accent-soft: #eef1f5; }
     .module-nfc    { --accent: #ea580c; --accent-soft: #fdeadd; }
     .module-radar  { --accent: #e11d48; --accent-soft: #fde7ec; }
 
@@ -982,10 +980,7 @@
         <line id="branche-piano" x1="170" y1="720" x2="35" y2="790"
               stroke="#d4deda" stroke-width="8" stroke-linecap="round"
               style="opacity:0"/>
-        <line id="branche-bruit" x1="300" y1="80" x2="160" y2="150"
-              stroke="#d4deda" stroke-width="8" stroke-linecap="round"
-              style="opacity:0"/>
-        <line id="branche-nfc" x1="300" y1="880" x2="470" y2="806"
+        <line id="branche-nfc" x1="300" y1="80" x2="160" y2="150"
               stroke="#d4deda" stroke-width="8" stroke-linecap="round"
               style="opacity:0"/>
         <line id="branche-radar" x1="300" y1="880" x2="300" y2="980"
@@ -1132,19 +1127,8 @@
         <div class="noeud-label">Piano Anti-Parasite</div>
       </div>
 
-      <div class="noeud noeud-bonus module-bruit" id="lien-bruit"
-           style="left:26.67%;top:15.31%">
-        <a href="bruit.html" class="noeud-btn"
-           aria-label="Bonus : La Chasse au Bruit">
-          <span class="noeud-emoji" aria-hidden="true">🤫</span>
-          <span class="noeud-num" id="badge-bruit">★</span>
-          <div class="sparkles" aria-hidden="true"><div class="sparkle"></div><div class="sparkle"></div><div class="sparkle"></div></div>
-        </a>
-        <div class="noeud-label">Chasse au bruit</div>
-      </div>
-
       <div class="noeud noeud-bonus module-nfc" id="lien-nfc"
-           style="left:78.33%;top:82.24%">
+           style="left:26.67%;top:15.31%">
         <a href="nfc.html" class="noeud-btn"
            aria-label="Bonus : Le Bip Magique (paiement sans contact)">
           <span class="noeud-emoji" aria-hidden="true">💳</span>
@@ -1282,7 +1266,6 @@
     { id: "matlab",      module: "Expert Matlab",              bonus: true },
     { id: "montre",      module: "La montre qui voit le sang", bonus: true },
     { id: "filtre",      module: "Le Piano Anti-Parasite",     bonus: true },
-    { id: "bruit",       module: "La Chasse au Bruit",         bonus: true },
     { id: "nfc",         module: "Le Bip Magique",             bonus: true },
     { id: "radar",       module: "Duel Sonar",                 bonus: true }
   ];
@@ -1412,8 +1395,7 @@
       { badgeId:"matlab",  lienId:"lien-matlab",  brancheId:"branche-matlab",  parentBadge:"sons"        },
       { badgeId:"montre",  lienId:"lien-montre",  brancheId:"branche-montre",  parentBadge:"labo"        },
       { badgeId:"filtre",  lienId:"lien-piano",   brancheId:"branche-piano",   parentBadge:"pathologies" },
-      { badgeId:"bruit",   lienId:"lien-bruit",   brancheId:"branche-bruit",   parentBadge:"signal"      },
-      { badgeId:"nfc",     lienId:"lien-nfc",     brancheId:"branche-nfc",     parentBadge:"metiers"     }
+      { badgeId:"nfc",     lienId:"lien-nfc",     brancheId:"branche-nfc",     parentBadge:"signal"      }
     ];
     document.querySelectorAll(".noeud-bonus-go").forEach(function(el) { el.remove(); });
 
@@ -1900,34 +1882,31 @@
 
     var BADGE_TO_IDX = { signal:0, coeur_ecg:1, sons:2, labo:3, pathologies:4, metiers:5 };
     var BONUS_PAR_MODULE = {
-      signal:      { brancheId:"branche-bruit",   noeudId:"lien-bruit"   },
+      signal:      { brancheId:"branche-nfc",     noeudId:"lien-nfc"     },
       coeur_ecg:   { brancheId:"branche-spectro", noeudId:"lien-spectro" },
       sons:        { brancheId:"branche-matlab",  noeudId:"lien-matlab"  },
       labo:        { brancheId:"branche-montre",  noeudId:"lien-montre"  },
-      pathologies: { brancheId:"branche-piano",   noeudId:"lien-piano"   },
-      metiers:     { brancheId:"branche-nfc",     noeudId:"lien-nfc"     }
+      pathologies: { brancheId:"branche-piano",   noeudId:"lien-piano"   }
     };
     var BONUS_BADGE_INFO = {
-      bruit:   { brancheId:"branche-bruit",   noeudId:"lien-bruit",   parentIdx:0 },
       curieux: { brancheId:"branche-spectro", noeudId:"lien-spectro", parentIdx:1 },
       matlab:  { brancheId:"branche-matlab",  noeudId:"lien-matlab",  parentIdx:2 },
       montre:  { brancheId:"branche-montre",  noeudId:"lien-montre",  parentIdx:3 },
       filtre:  { brancheId:"branche-piano",   noeudId:"lien-piano",   parentIdx:4 },
-      nfc:     { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:5 }
+      nfc:     { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:0 }
     };
     var BONUS_PREV_DEFS = [
-      { brancheId:"branche-bruit",   noeudId:"lien-bruit",   parentIdx:0, badgeId:"bruit"   },
       { brancheId:"branche-spectro", noeudId:"lien-spectro", parentIdx:1, badgeId:"curieux" },
       { brancheId:"branche-matlab",  noeudId:"lien-matlab",  parentIdx:2, badgeId:"matlab"  },
       { brancheId:"branche-montre",  noeudId:"lien-montre",  parentIdx:3, badgeId:"montre"  },
       { brancheId:"branche-piano",   noeudId:"lien-piano",   parentIdx:4, badgeId:"filtre"  },
-      { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:5, badgeId:"nfc"     }
+      { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:0, badgeId:"nfc"     }
     ];
     var SEG_IDS   = ["seg-1","seg-2","seg-3","seg-4","seg-5"];
     var FLUX_IDS  = ["flux-1","flux-2","flux-3","flux-4","flux-5"];
     var NOEUD_IDS = ["lien-signal","lien-coeur","lien-ecouter","lien-labo","lien-pathologies","lien-metiers"];
-    var ALL_BONUS_IDS = ["lien-spectro","lien-matlab","lien-montre","lien-piano","lien-bruit","lien-nfc"];
-    var ALL_BR_IDS    = ["branche-spectro","branche-matlab","branche-montre","branche-piano","branche-bruit","branche-nfc"];
+    var ALL_BONUS_IDS = ["lien-spectro","lien-matlab","lien-montre","lien-piano","lien-nfc"];
+    var ALL_BR_IDS    = ["branche-spectro","branche-matlab","branche-montre","branche-piano","branche-nfc"];
 
     var recIdx   = BADGE_TO_IDX[moduleRecentId];
     var recBonus = BONUS_BADGE_INFO[moduleRecentId];
@@ -2360,7 +2339,7 @@
     if (window._animationEnCours) return;
 
     var radarFait        = moduleValide("radar");
-    var tousAutresBonusFaits = ["curieux", "matlab", "montre", "filtre", "bruit", "nfc"].every(moduleValide);
+    var tousAutresBonusFaits = ["curieux", "matlab", "montre", "filtre", "nfc"].every(moduleValide);
 
     var indiceEl = document.getElementById("indice-echo");
     if (indiceEl) {

@@ -20,7 +20,6 @@ var BADGES = {
   matlab:      { nom: "Expert Matlab",      icone: "💻" },
   montre:      { nom: "Ingénieur Biomédical", icone: "⌚" },
   filtre:      { nom: "Dompteur de Fréquences", icone: "🎹" },
-  bruit:       { nom: "Maître du Silence",       icone: "🤫" },
   nfc:         { nom: "Maître du Sans-Contact",  icone: "💳" },
   radar:       { nom: "Maître du Sonar",         icone: "📡" }
 };
@@ -48,7 +47,7 @@ function jouerSon(idSon, volume = 0.5) {
 var BADGES_OBLIGATOIRES = ["signal", "coeur_ecg", "sons", "labo", "pathologies", "metiers"];
 
 /** Badges bonus (missions secondaires, non requis pour le diplôme) */
-var BADGES_BONUS = ["curieux", "matlab", "montre", "filtre", "bruit", "nfc", "radar"];
+var BADGES_BONUS = ["curieux", "matlab", "montre", "filtre", "nfc", "radar"];
 
 /** Clé sessionStorage pour stocker les badges */
 var CLE_PROGRESSION = "lisuncoeur_badges";
