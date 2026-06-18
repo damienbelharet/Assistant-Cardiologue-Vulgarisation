@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Le bip magique · Lis un cœur</title>
+  <meta name="description" content="Mission bonus : deviens la carte sans contact et fais passer le paiement, de la liaison radio jusqu'au décodage du code.">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ═══════════════════════════════════════════
+       STYLES LOCAUX · nfc.html
+       Accent de la mission : orange "terminal"
+       ═══════════════════════════════════════════ */
+    :root { --nfc: #10b981; --nfc-doux: #fdeed7; }
+
+    .mission.nfc { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+
+    .num-etape {
+      display: inline-grid; place-items: center;
+      width: 30px; height: 30px; margin-right: 10px; flex: none;
+      border-radius: 50%; background: var(--nfc); color: #fff;
+      font-family: var(--titre); font-weight: 800; font-size: 0.95rem;
+      vertical-align: middle;
+    }
+    .carte h2 { display: flex; align-items: center; }
+
+    .carte.bloquee { opacity: 0.45; }
+    .carte.bloquee input, .carte.bloquee .bouton, .carte.bloquee canvas { pointer-events: none; }
+    .carte.revele { animation: apparait 0.5s ease both; }
+
+    /* ── Scène terminal + carte ── */
+    .scene-nfc {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      background: #f8fafc; border-radius: 14px; padding: 26px 18px; margin: 16px 0;
+      min-height: 130px; overflow: hidden;
+    }
+    .terminal, .carte-nfc {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      font-size: 3.2rem; line-height: 1; transition: transform 0.18s ease; z-index: 1;
+    }
+    .terminal .etiq, .carte-nfc .etiq {
+      font-family: var(--titre); font-weight: 700; font-size: 0.78rem; color: var(--encre-doux);
+    }
+    .reveil {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.4); font-size: 2.1rem; opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; z-index: 2;
+    }
+    .scene-nfc.eveillee .reveil { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .ondes { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+    .onde {
+      position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      border: 3px solid var(--nfc); border-radius: 50%; opacity: 0;
+    }
+    .scene-nfc.energie .onde { animation: pulse-onde 1.1s ease-out infinite; }
+    .scene-nfc.energie .onde:nth-child(2) { animation-delay: 0.37s; }
+    .scene-nfc.energie .onde:nth-child(3) { animation-delay: 0.74s; }
+    @keyframes pulse-onde {
+      0%   { transform: scale(0.4); opacity: 0.8; }
+      100% { transform: scale(4);   opacity: 0; }
+    }
+
+    /* ── Réglages ── */
+    .reglage { margin: 14px 0 10px; }
+    .reglage label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: var(--titre); font-weight: 700; margin-bottom: 8px;
+    }
+    .reglage .val { color: var(--nfc); }
+    .curseur { width: 100%; accent-color: var(--nfc); height: 6px; }
+    .curseur-bornes {
+      display: flex; justify-content: space-between; font-size: 0.8rem;
+      color: var(--encre-doux); margin-top: 4px;
+    }
+
+    /* ── Jauges (signal / bruit / énergie) ── */
+    .jauge-ligne { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .jauge-nom { font-family: var(--titre); font-weight: 700; font-size: 0.85rem; width: 92px; flex: none; }
+    .jauge {
+      flex: 1; height: 14px; background: #eef2ef; border-radius: 99px; overflow: hidden;
+    }
+    .jauge-fill { height: 100%; width: 0%; border-radius: 99px; transition: width 0.12s linear; }
+    .jauge-fill.signal { background: var(--signal); }
+    .jauge-fill.bruit  { background: var(--attention); }
+    .jauge-fill.energie{ background: var(--nfc); }
+    .jauge-val { font-family: var(--titre); font-weight: 700; font-size: 0.82rem; width: 46px; text-align: right; flex: none; color: var(--encre-doux); }
+
+    canvas.onde { width: 100%; height: auto; background: #f8fafc; border-radius: 12px; margin: 6px 0 2px; display: block; }
+
+    /* ── Étape 3 : moduler bit par bit ── */
+    .bit-piste { display: flex; gap: 8px; justify-content: center; margin: 14px 0 10px; flex-wrap: wrap; }
+    .bit-case {
+      width: 46px; height: 56px; border-radius: 10px; border: 2px solid var(--bord);
+      display: grid; place-items: center; background: #fff;
+      font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 700;
+      color: #cbd5e1; transition: all 0.15s ease;
+    }
+    .bit-case.actif { border-color: var(--nfc); color: var(--nfc); box-shadow: 0 0 0 3px var(--nfc-doux); animation: clign 1s step-end infinite; }
+    @keyframes clign { 50% { box-shadow: 0 0 0 1px var(--nfc-doux); } }
+    .bit-case.envoye { border-color: var(--signal); color: #fff; background: var(--signal); }
+    .bit-case.erreur { animation: secousse 0.3s ease; }
+    @keyframes secousse { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    .bit-controls { display: flex; gap: 10px; }
+    .bit-controls .bouton { flex: 1; font-size: 1.05rem; }
+
+    /* ── Étape 4 : séquence reçue ── */
+    .recu-piste { display: flex; gap: 7px; justify-content: center; margin: 12px 0; flex-wrap: wrap; }
+    .recu-case {
+      width: 40px; height: 48px; border-radius: 9px; border: 2px solid var(--bord);
+      display: grid; place-items: center; background: #fff;
+      font-family: 'Courier New', Courier, monospace; font-size: 1.3rem; font-weight: 700; color: var(--encre);
+      position: relative;
+    }
+    .recu-case.controle { border-style: dashed; border-color: var(--nfc); }
+    .recu-case .sous { position: absolute; bottom: -18px; font-size: 0.62rem; color: var(--encre-doux); font-family: var(--titre); white-space: nowrap; }
+    .recu-case.faux { border-color: var(--battement); color: var(--battement); box-shadow: 0 0 0 3px rgba(225,29,72,0.12); }
+    .recu-case.bon  { border-color: var(--signal); }
+    .recu-piste.avec-sous { margin-bottom: 28px; }
+
+    .resultat-paiement { font-family: var(--titre); font-weight: 800; font-size: 1.5rem; text-align: center; margin: 14px 0 4px; min-height: 1.2em; }
+    .resultat-paiement.ok  { color: var(--signal-fonce); }
+    .resultat-paiement.pin { color: var(--attention); }
+
+    .badge-nfc { text-align: center; background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 2px solid var(--nfc); }
+    .badge-nfc .gros-emoji { font-size: 2.8rem; }
+    .badge-nfc h2 { justify-content: center; color: #b45309; margin: 8px 0; }
+  </style>
+</head>
+<body>
+<div class="vignette-fond"></div>
+
+<nav class="barre">
+  <a class="marque" href="index.html">Lis un <span>cœur</span></a>
+  <a class="lien" href="index.html">← Accueil</a>
+</nav>
+
+<main class="page">
+
+  <!-- ════════════ INTRO ════════════ -->
+  <header class="mission nfc">
+    <h1>💳 Le bip magique</h1>
+    <p>Tu poses ta carte, ça fait <strong>« bip »</strong>, c'est payé. En vrai, c'est une vraie petite
+       <strong>communication radio</strong> en 4 étapes. Cette fois, <strong>c'est toi la carte</strong>&nbsp;:
+       à toi d'établir la liaison, de capter l'énergie, d'envoyer ton code, et de le faire valider.</p>
+  </header>
+
+  <div class="etapes" id="suivi">
+    <div class="pastille active" data-pas="1"><span class="num">1</span> Approcher</div>
+    <div class="pastille"        data-pas="2"><span class="num">2</span> Accorder</div>
+    <div class="pastille"        data-pas="3"><span class="num">3</span> Moduler</div>
+    <div class="pastille"        data-pas="4"><span class="num">4</span> Décoder</div>
+  </div>
+
+  <!-- ════════ ÉTAPE 1 · LIAISON RADIO (signal / bruit) ════════ -->
+  <section class="carte" id="sec-1">
+    <h2><span class="num-etape">1</span>Établis la liaison radio</h2>
+    <p class="explication">
+      La carte et le terminal se parlent par une <strong>onde radio</strong>. Mais il y a toujours du
+      <strong>bruit</strong> autour (parasites des autres appareils). Pour que le message passe, le
+      <strong>signal</strong> reçu doit rester <strong>plus fort que le bruit</strong>. Rapproche la carte
+      et trouve jusqu'où la liaison tient&nbsp;:
+    </p>
+
+    <div class="scene-nfc" id="scene1">
+      <div class="terminal"><span>🟩</span><span class="etiq">Terminal</span></div>
+      <div class="carte-nfc" id="carte1" style="transform: translateX(90px);">
+        <span>💳</span><span class="etiq">Toi</span><span class="reveil">📶</span>
+      </div>
+    </div>
+
+    <div class="reglage">
+      <label for="distance">Distance <span class="val" id="val-distance">loin</span></label>
+      <input type="range" id="distance" class="curseur" min="0" max="100" value="100" step="1">
+      <div class="curseur-bornes"><span>collée</span><span>loin</span></div>
+    </div>
+
+    <div class="jauge-ligne"><span class="jauge-nom">Signal</span>
+      <div class="jauge"><div class="jauge-fill signal" id="fill-signal"></div></div>
+      <span class="jauge-val" id="val-signal">0</span></div>
+    <div class="jauge-ligne"><span class="jauge-nom">Bruit</span>
+      <div class="jauge"><div class="jauge-fill bruit" id="fill-bruit"></div></div>
+      <span class="jauge-val" id="val-bruit">22</span></div>
+
+    <canvas class="onde" id="onde-canal" width="600" height="90" aria-label="Le signal reçu, plus ou moins noyé dans le bruit"></canvas>
+
+    <p class="message pas-encore" id="msg1">Trop loin : le signal se noie dans le bruit.</p>
+
+    <p class="explication" style="margin-bottom:0;">
+      💡 Cet écart entre signal et bruit, c'est le <strong>rapport signal sur bruit</strong>. Et si la
+      <strong>portée</strong> est aussi courte, c'est exprès&nbsp;: personne ne peut capter ta carte à distance,
+      par exemple dans le métro.
+    </p>
+  </section>
+
+  <!-- ════════ ÉTAPE 2 · ACCORD EN FRÉQUENCE ════════ -->
+  <section class="carte bloquee" id="sec-2">
+    <h2><span class="num-etape">2</span>Accorde-toi sur la porteuse</h2>
+    <p class="explication">
+      Ta carte <strong>n'a pas de pile</strong> 🔋🚫 ! Elle se nourrit de l'onde du terminal, appelée la
+      <strong>porteuse</strong>. Mais elle ne capte un maximum d'énergie que si le terminal émet sur la
+      <strong>bonne fréquence</strong> : c'est l'<strong>accord</strong>. Règle la fréquence pour faire monter
+      l'énergie au maximum&nbsp;:
+    </p>
+
+    <div class="scene-nfc" id="scene2">
+      <div class="ondes" aria-hidden="true"><span class="onde"></span><span class="onde"></span><span class="onde"></span></div>
+      <div class="terminal"><span>🟩</span><span class="etiq">Terminal</span></div>
+      <div class="carte-nfc" id="carte2"><span>💳</span><span class="etiq">Toi</span><span class="reveil">⚡</span></div>
+    </div>
+
+    <div class="reglage">
+      <label for="freq">Fréquence du terminal <span class="val" id="val-freq">11.50 MHz</span></label>
+      <input type="range" id="freq" class="curseur" min="11.5" max="15.5" value="11.5" step="0.02">
+      <div class="curseur-bornes"><span>11,5 MHz</span><span>15,5 MHz</span></div>
+    </div>
+
+    <div class="jauge-ligne"><span class="jauge-nom">Énergie captée</span>
+      <div class="jauge"><div class="jauge-fill energie" id="fill-energie"></div></div>
+      <span class="jauge-val" id="val-energie">0</span></div>
+
+    <p class="message pas-encore" id="msg2">Pas accordé : la carte ne reçoit presque rien.</p>
+
+    <p class="explication" style="margin-bottom:0;">
+      💡 La vraie fréquence du paiement sans contact est <strong>13,56 MHz</strong>. Carte et terminal sont
+      réglés pile sur cette valeur pour se comprendre, comme deux radios sur la même station.
+    </p>
+  </section>
+
+  <!-- ════════ ÉTAPE 3 · MODULER LE CODE ════════ -->
+  <section class="carte bloquee" id="sec-3">
+    <h2><span class="num-etape">3</span>Envoie ton code en le modulant</h2>
+    <p class="explication">
+      Réveillée, la carte doit répondre. Pour envoyer un message sans fil, tu <strong>modifies l'onde</strong> :
+      une onde <strong>haute</strong> = un <strong>1</strong>, une onde <strong>basse</strong> = un <strong>0</strong>.
+      Ça s'appelle la <strong>modulation</strong>. Voici ton code secret en binaire&nbsp;: envoie-le bit par bit&nbsp;!
+    </p>
+
+    <div class="bit-piste" id="piste-bits"><!-- cases injectées par JS --></div>
+
+    <canvas class="onde" id="onde-module" width="600" height="100" aria-label="L'onde que tu construis en envoyant chaque bit"></canvas>
+
+    <div class="bit-controls">
+      <button class="bouton" id="btn-haut">▔ Onde haute (1)</button>
+      <button class="bouton secondaire" id="btn-bas">▁ Onde basse (0)</button>
+    </div>
+    <p class="message" id="msg3" style="margin-top:14px;">Regarde la case qui clignote et clique le bon bouton.</p>
+
+    <p class="explication" style="margin-bottom:0;">
+      💡 Tout passe ainsi, en <strong>binaire</strong>, façon morse. Et comme ce code <strong>change à chaque paiement</strong>,
+      un code intercepté ne sert plus à rien la fois suivante.
+    </p>
+  </section>
+
+  <!-- ════════ ÉTAPE 4 · DÉCODAGE + CONTRÔLE D'ERREUR ════════ -->
+  <section class="carte bloquee" id="sec-4">
+    <h2><span class="num-etape">4</span>Le terminal décode et vérifie</h2>
+    <p class="explication">
+      Le terminal reçoit ta séquence et la <strong>décode</strong>. Pour repérer les erreurs, tu as ajouté un
+      <strong>bit de contrôle</strong> (en pointillé)&nbsp;: il vaut 1 si le nombre de 1 est impair, 0 s'il est pair.
+      Le terminal recompte. Mais le bruit a abîmé un bit en route… Lance la vérification&nbsp;:
+    </p>
+
+    <div class="recu-piste avec-sous" id="piste-recue"><!-- cases injectées par JS --></div>
+
+    <button class="bouton" id="btn-verif" style="width:100%;">🔍 Vérifier le contrôle d'erreur</button>
+    <button class="bouton secondaire cache" id="btn-renvoi" style="width:100%; margin-top:8px;">🔄 Renvoyer la séquence</button>
+    <p class="message" id="msg4" style="margin-top:14px;">Le terminal va recompter les 1 pour voir si tout est arrivé intact.</p>
+
+    <!-- Paiement (apparaît une fois le code décodé sans erreur) -->
+    <div id="zone-paiement" class="cache">
+      <p class="explication" style="margin-top:18px;">
+        Code reçu sans erreur&nbsp;! Reste à valider. Le terminal regarde le <strong>montant</strong>&nbsp;:
+        petit, c'est un simple bip&nbsp;; gros (plus de 50&nbsp;€), il demande ton code à 4 chiffres.
+      </p>
+      <div class="reglage">
+        <label for="montant">Montant <span class="val" id="val-montant">15&nbsp;€</span></label>
+        <input type="range" id="montant" class="curseur" min="2" max="120" value="15" step="1">
+        <div class="curseur-bornes"><span>2&nbsp;€</span><span>50&nbsp;€</span><span>120&nbsp;€</span></div>
+      </div>
+      <button class="bouton" id="btn-payer" style="width:100%;">💳 Payer</button>
+      <button class="bouton secondaire cache" id="btn-pin" style="width:100%; margin-top:8px;">⌨️ Taper mon code à 4 chiffres</button>
+      <div class="resultat-paiement" id="resultat"></div>
+    </div>
+  </section>
+
+  <!-- ════════ BADGE ════════ -->
+  <section class="carte badge-nfc cache" id="sec-badge">
+    <div class="gros-emoji">💳🏅</div>
+    <h2>Badge obtenu : Maître du Sans-Contact&nbsp;!</h2>
+    <p class="explication" style="text-align:center; max-width:520px; margin:0 auto 22px;">
+      Tu as fait tout le travail de la carte&nbsp;: établir la <strong>liaison radio</strong> malgré le bruit,
+      t'<strong>accorder</strong> sur la porteuse pour capter l'énergie, <strong>moduler</strong> ton code en
+      binaire, puis le faire <strong>décoder</strong> et vérifier par le terminal. Le « bip », c'est ça&nbsp;:
+      de la télécom bien réglée.
+    </p>
+    <a href="index.html?badge=nfc" class="bouton" id="btn-retour"
+       style="display:inline-block; text-decoration:none; font-size:1.1rem; padding:14px 28px;">
+      ← Retour à l'accueil pour voir ton badge
+    </a>
+  </section>
+
+  <p class="pied">Réalisé par <strong>Damien Belharet &amp; Dima Husseini</strong> — Stage ENSEIRB-MATMECA · Département Télécommunications</p>
+</main>
+
+<script src="progression.js"></script>
+<script>
+/* =====================================================================
+   LE BIP MAGIQUE · nfc.html
+   4 activités télécom : liaison (S/B), accord en fréquence,
+   modulation active, décodage + bit de parité. 100 % hors-ligne.
+   ===================================================================== */
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+
+  var etapeMax = 1;
+  function terminerEtape(n) {
+    if (n < etapeMax) return;
+    etapeMax = n + 1;
+    document.querySelectorAll('#suivi .pastille').forEach(function (p) {
+      var num = parseInt(p.getAttribute('data-pas'), 10);
+      p.classList.toggle('faite',  num <= n);
+      p.classList.toggle('active', num === n + 1);
+    });
+    var suiv = $('sec-' + (n + 1));
+    if (suiv && suiv.classList.contains('bloquee')) {
+      suiv.classList.remove('bloquee');
+      suiv.classList.add('revele');
+      setTimeout(function () { suiv.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+    }
+    if (n === 3) preparerDecodage();
+    if (n === 4) revelerBadge();
+  }
+
+  /* =================================================================
+     ÉTAPE 1 · Liaison radio : signal vs bruit
+     ================================================================= */
+  var distance = $('distance'), carte1 = $('carte1'), scene1 = $('scene1');
+  var msg1 = $('msg1'), valDist = $('val-distance');
+  var fillSignal = $('fill-signal'), valSignal = $('val-signal');
+  var fillBruit = $('fill-bruit'), valBruit = $('val-bruit');
+  var canal = $('onde-canal');
+  var BRUIT = 22;
+
+  function dessinerCanal(signal, bruit) {
+    if (!canal || !canal.getContext) return;
+    var ctx = canal.getContext('2d'), W = canal.width, H = canal.height, mid = H / 2;
+    ctx.clearRect(0, 0, W, H);
+    var aSig = (signal / 100) * H * 0.34;
+    var aBruit = (bruit / 100) * H * 0.34;
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = signal > bruit * 1.8 ? '#0e9f6e' : (signal > bruit * 1.1 ? '#d97706' : '#e11d48');
+    ctx.beginPath();
+    for (var x = 0; x <= W; x++) {
+      var y = mid - aSig * Math.sin(x / 14) - aBruit * (Math.random() - 0.5) * 2;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function majDistance() {
+    var d = parseInt(distance.value, 10);
+    carte1.style.transform = 'translateX(' + (d * 1.0) + 'px)';
+    var signal = Math.round(100 * Math.exp(-d / 30));
+    fillSignal.style.width = signal + '%';
+    valSignal.textContent = signal;
+    fillBruit.style.width = BRUIT + '%';
+    valBruit.textContent = BRUIT;
+    dessinerCanal(signal, BRUIT);
+
+    if (signal > BRUIT * 1.8) {
+      valDist.textContent = 'tout près';
+      scene1.classList.add('eveillee');
+      msg1.textContent = '✅ Signal bien au-dessus du bruit : la liaison passe !';
+      msg1.className = 'message bon';
+      terminerEtape(1);
+    } else if (signal > BRUIT * 1.1) {
+      valDist.textContent = 'limite';
+      scene1.classList.remove('eveillee');
+      msg1.textContent = 'À la limite : ça grésille, le message passe mal.';
+      msg1.className = 'message pas-encore';
+    } else {
+      valDist.textContent = 'loin';
+      scene1.classList.remove('eveillee');
+      msg1.textContent = 'Trop loin : le signal se noie dans le bruit.';
+      msg1.className = 'message pas-encore';
+    }
+  }
+  distance.addEventListener('input', majDistance);
+  majDistance();
+
+  /* =================================================================
+     ÉTAPE 2 · Accord en fréquence (la porteuse)
+     ================================================================= */
+  var freq = $('freq'), valFreq = $('val-freq'), scene2 = $('scene2'), msg2 = $('msg2');
+  var fillEnergie = $('fill-energie'), valEnergie = $('val-energie');
+  var F_CIBLE = 13.56, SIGMA = 0.55;
+
+  function majFreq() {
+    var f = parseFloat(freq.value);
+    valFreq.textContent = f.toFixed(2).replace('.', ',') + ' MHz';
+    var e = Math.round(100 * Math.exp(-Math.pow(f - F_CIBLE, 2) / (2 * SIGMA * SIGMA)));
+    fillEnergie.style.width = e + '%';
+    valEnergie.textContent = e;
+
+    if (e >= 95) {
+      scene2.classList.add('energie', 'eveillee');
+      msg2.textContent = '⚡ Accordé ! La carte capte le maximum d\u2019énergie et s\u2019allume.';
+      msg2.className = 'message bon';
+      terminerEtape(2);
+    } else if (e >= 45) {
+      scene2.classList.remove('energie', 'eveillee');
+      msg2.textContent = 'Presque : continue d\u2019ajuster la fréquence.';
+      msg2.className = 'message pas-encore';
+    } else {
+      scene2.classList.remove('energie', 'eveillee');
+      msg2.textContent = 'Pas accordé : la carte ne reçoit presque rien.';
+      msg2.className = 'message pas-encore';
+    }
+  }
+  freq.addEventListener('input', majFreq);
+  majFreq();
+
+  /* =================================================================
+     ÉTAPE 3 · Modulation active (tu envoies le code bit par bit)
+     ================================================================= */
+  var pisteBits = $('piste-bits'), ondeMod = $('onde-module'), msg3 = $('msg3');
+  var btnHaut = $('btn-haut'), btnBas = $('btn-bas');
+  var dataBits = [];      // les 6 bits du code (partagés avec l'étape 4)
+  var idxEnvoi = 0;
+  var N_BITS = 6;
+
+  function genererCode() {
+    dataBits = [];
+    pisteBits.innerHTML = '';
+    for (var i = 0; i < N_BITS; i++) {
+      var b = Math.round(Math.random());
+      dataBits.push(b);
+      var c = document.createElement('div');
+      c.className = 'bit-case';
+      c.textContent = b;
+      c.id = 'bit-' + i;
+      pisteBits.appendChild(c);
+    }
+    idxEnvoi = 0;
+    marquerActif();
+    dessinerModule();
+  }
+
+  function marquerActif() {
+    for (var i = 0; i < N_BITS; i++) {
+      var c = $('bit-' + i);
+      c.classList.toggle('actif',  i === idxEnvoi);
+      c.classList.toggle('envoye', i <  idxEnvoi);
+    }
+  }
+
+  function dessinerModule() {
+    if (!ondeMod || !ondeMod.getContext) return;
+    var ctx = ondeMod.getContext('2d'), W = ondeMod.width, H = ondeMod.height, mid = H / 2;
+    ctx.clearRect(0, 0, W, H);
+    var larg = W / N_BITS;
+    ctx.lineWidth = 2.6; ctx.strokeStyle = '#d97706';
+    ctx.beginPath();
+    for (var x = 0; x <= W; x++) {
+      var i = Math.min(N_BITS - 1, Math.floor(x / larg));
+      var y;
+      if (i < idxEnvoi) {                       // bit déjà envoyé : onde modulée
+        var amp = dataBits[i] === 1 ? H * 0.34 : H * 0.07;
+        y = mid - amp * Math.sin((x / larg) * 4 * 2 * Math.PI);
+      } else {                                  // pas encore envoyé : ligne plate
+        y = mid;
+      }
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(22,48,42,0.10)'; ctx.lineWidth = 1;
+    for (var k = 1; k < N_BITS; k++) { ctx.beginPath(); ctx.moveTo(k*larg,8); ctx.lineTo(k*larg,H-8); ctx.stroke(); }
+  }
+
+  function envoyer(bit) {
+    if (idxEnvoi >= N_BITS) return;
+    var attendu = dataBits[idxEnvoi];
+    var c = $('bit-' + idxEnvoi);
+    if (bit === attendu) {
+      idxEnvoi++;
+      marquerActif();
+      dessinerModule();
+      if (idxEnvoi >= N_BITS) {
+        var nombre = parseInt(dataBits.join(''), 2);
+        msg3.textContent = '✅ Code transmis ! En clair, ça fait le nombre ' + nombre + '.';
+        msg3.className = 'message bon';
+        btnHaut.disabled = true; btnBas.disabled = true;
+        setTimeout(function () { terminerEtape(3); }, 700);
+      } else {
+        msg3.textContent = 'Bit envoyé. Au suivant : envoie un ' + dataBits[idxEnvoi] + '.';
+        msg3.className = 'message';
+      }
+    } else {
+      c.classList.add('erreur');
+      setTimeout(function () { c.classList.remove('erreur'); }, 320);
+      msg3.textContent = 'Pas ce bit-là : la case qui clignote demande un ' + attendu + '.';
+      msg3.className = 'message pas-encore';
+    }
+  }
+  btnHaut.addEventListener('click', function () { envoyer(1); });
+  btnBas.addEventListener('click',  function () { envoyer(0); });
+
+  /* =================================================================
+     ÉTAPE 4 · Décodage + bit de parité
+     ================================================================= */
+  var pisteRecue = $('piste-recue'), msg4 = $('msg4');
+  var btnVerif = $('btn-verif'), btnRenvoi = $('btn-renvoi'), zonePaie = $('zone-paiement');
+  var parite = 0, idxCorrompu = -1, recus = [];
+
+  function preparerDecodage() {
+    parite = dataBits.reduce(function (s, b) { return s + b; }, 0) % 2;  // bit de contrôle
+    recus = dataBits.concat([parite]);                                   // 7 bits transmis
+    idxCorrompu = Math.floor(Math.random() * recus.length);              // le bruit abîme un bit
+    afficherRecue(true);
+  }
+
+  function afficherRecue(avecCorruption) {
+    pisteRecue.innerHTML = '';
+    for (var i = 0; i < recus.length; i++) {
+      var v = recus[i];
+      if (avecCorruption && i === idxCorrompu) v = v ? 0 : 1;            // bit inversé par le bruit
+      var c = document.createElement('div');
+      c.className = 'recu-case' + (i === recus.length - 1 ? ' controle' : '');
+      c.textContent = v;
+      if (i === recus.length - 1) {
+        var s = document.createElement('span'); s.className = 'sous'; s.textContent = 'contrôle'; c.appendChild(s);
+      }
+      c.id = 'recu-' + i;
+      pisteRecue.appendChild(c);
+    }
+  }
+
+  btnVerif.addEventListener('click', function () {
+    // recompte la parité des 6 bits de données reçus
+    var recuData = [];
+    for (var i = 0; i < N_BITS; i++) {
+      recuData.push((i === idxCorrompu) ? (recus[i] ? 0 : 1) : recus[i]);
+    }
+    var pariteRecue = (idxCorrompu === N_BITS) ? (parite ? 0 : 1) : parite; // si c'est le bit de contrôle qui a été touché
+    var calc = recuData.reduce(function (s, b) { return s + b; }, 0) % 2;
+
+    msg4.textContent = '⚠️ Erreur détectée ! Le compte des 1 ne correspond pas au bit de contrôle : un bit a été abîmé par le bruit.';
+    msg4.className = 'message pas-encore';
+    var caseFausse = $('recu-' + idxCorrompu);
+    if (caseFausse) caseFausse.classList.add('faux');
+    btnVerif.disabled = true;
+    btnRenvoi.classList.remove('cache');
+  });
+
+  btnRenvoi.addEventListener('click', function () {
+    afficherRecue(false);                                   // séquence propre
+    for (var i = 0; i < recus.length; i++) { var c = $('recu-' + i); if (c) c.classList.add('bon'); }
+    var nombre = parseInt(dataBits.join(''), 2);
+    msg4.textContent = '✅ Cette fois le contrôle correspond : code décodé = ' + nombre + '.';
+    msg4.className = 'message bon';
+    btnRenvoi.disabled = true;
+    zonePaie.classList.remove('cache');
+    zonePaie.classList.add('revele');
+  });
+
+  /* --- Paiement final --- */
+  var montant = $('montant'), valMontant = $('val-montant');
+  var btnPayer = $('btn-payer'), btnPin = $('btn-pin'), resultat = $('resultat');
+  var PLAFOND = 50;
+
+  function majMontant() {
+    valMontant.innerHTML = montant.value + '&nbsp;€';
+    resultat.textContent = ''; resultat.className = 'resultat-paiement';
+    btnPin.classList.add('cache'); btnPayer.classList.remove('cache'); btnPayer.disabled = false;
+  }
+  montant.addEventListener('input', majMontant);
+
+  function paiementValide() {
+    resultat.textContent = '🔔 Bip ! C\u2019est payé.';
+    resultat.className = 'resultat-paiement ok';
+    btnPayer.disabled = true;
+    setTimeout(function () { terminerEtape(4); }, 700);
+  }
+  btnPayer.addEventListener('click', function () {
+    var m = parseInt(montant.value, 10);
+    if (m > PLAFOND) {
+      resultat.textContent = '🔒 ' + m + ' € : gros montant, tape ton code.';
+      resultat.className = 'resultat-paiement pin';
+      btnPayer.classList.add('cache'); btnPin.classList.remove('cache');
+    } else { paiementValide(); }
+  });
+  btnPin.addEventListener('click', function () {
+    btnPin.disabled = true; btnPin.textContent = '✅ Code correct';
+    setTimeout(paiementValide, 400);
+  });
+
+  /* =================================================================
+     BADGE
+     ================================================================= */
+  function revelerBadge() {
+    var sec = $('sec-badge');
+    if (!sec || !sec.classList.contains('cache')) return;
+    sec.classList.remove('cache'); sec.classList.add('revele');
+    if (typeof validerModule === 'function') validerModule('nfc');
+    setTimeout(function () { sec.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+  }
+
+  /* Génère le code de l'étape 3 au chargement (prêt dès qu'on y arrive) */
+  genererCode();
+})();
+</script>
+</body>
+</html>
