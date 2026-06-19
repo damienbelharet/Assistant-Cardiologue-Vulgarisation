@@ -1984,7 +1984,8 @@
       matlab:  { brancheId:"branche-matlab",  noeudId:"lien-matlab",  parentIdx:2 },
       montre:  { brancheId:"branche-montre",  noeudId:"lien-montre",  parentIdx:3 },
       filtre:  { brancheId:"branche-piano",   noeudId:"lien-piano",   parentIdx:4 },
-      nfc:     { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:0 }
+      nfc:     { brancheId:"branche-nfc",     noeudId:"lien-nfc",     parentIdx:0 },
+      radar:   { brancheId:"branche-radar",   noeudId:"lien-radar",   parentIdx:5 }
     };
     var BONUS_PREV_DEFS = [
       { brancheId:"branche-spectro", noeudId:"lien-spectro", parentIdx:1, badgeId:"curieux" },
@@ -2070,6 +2071,7 @@
 
       var noeudBonusEl = document.getElementById(ndId);
       if (noeudBonusEl) {
+        noeudBonusEl.style.display = "flex"; /* le nœud radar est en display:none par défaut : on l'affiche pour l'animer */
         noeudBonusEl.classList.remove("fait", "verrouille");
         var goB = noeudBonusEl.querySelector(".noeud-bonus-go");
         if (goB) goB.remove();
