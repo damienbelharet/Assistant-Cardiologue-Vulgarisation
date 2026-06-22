@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Télémétrie UWB — Lis un cœur</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body {
+      background: #00120b;
+      color: #eafff5;
+      font-family: var(--texte, sans-serif);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .hud-top {
+      background: linear-gradient(135deg, #0c3d2b 0%, #16302a 100%);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin: 20px 0;
+      box-shadow: 0 8px 28px rgba(14, 50, 38, 0.4);
+      border: 1px solid rgba(14,159,110,0.3);
+      width: 90%;
+      max-width: 800px;
+      text-align: center;
+    }
+    .hud-top h2 {
+      margin: 0; color: #34d399; font-family: var(--titre, sans-serif);
+      font-weight: 800; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    .game-layout {
+      display: flex; flex-direction: column; align-items: center; gap: 15px;
+      width: 100%; max-width: 800px;
+    }
+
+    .view-container {
+      display: flex;
+      gap: 15px;
+      align-items: stretch;
+      width: 100%;
+      max-width: 500px; 
+      justify-content: center;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      flex: 0 0 400px; 
+      height: 400px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #10b981;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      background: #1e5631;
+    }
+    #terrain-canvas {
+      display: block; width: 100%; height: 100%;
+    }
+
+    .qte-container-v {
+      width: 40px; background: #061410; border: 2px solid #10b981;
+      border-radius: 12px; padding: 5px; box-sizing: border-box;
+      display: flex; flex-direction: column; align-items: center;
+      visibility: hidden; 
+    }
+
+    .qte-label {
+      font-family: var(--titre, sans-serif); font-weight: 800; color: #fbbf24;
+      margin-bottom: 5px; font-size: 1rem; text-align: center;
+    }
+
+    .qte-barre-fond-v {
+      width: 100%; flex: 1; background: #222; border-radius: 12px;
+      position: relative; overflow: hidden; box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
+      background: linear-gradient(to top, #10b981 0%, #fbbf24 50%, #ef4444 100%);
+    }
+
+    .qte-curseur-v {
+      position: absolute; left: 0; right: 0; bottom: 0%; height: 6px; margin-bottom: -3px;
+      background: #fff; box-shadow: 0 0 10px #fff; border-radius: 3px; z-index: 2;
+    }
+
+    .graph-wrapper {
+      width: 100%; max-width: 500px; background: #061410; border: 2px solid #10b981; border-radius: 12px;
+      padding: 10px; box-sizing: border-box; position: relative; height: 200px;
+    }
+    .graph-title {
+      position: absolute; top: 10px; left: 15px; font-size: 0.8rem; color: rgba(16, 185, 129, 0.8);
+      text-transform: uppercase; font-weight: bold; letter-spacing: 0.1em; z-index: 10;
+    }
+    #graphe-vitesse { width: 100%; height: 100%; }
+
+    #modale-fin {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    #modale-fin.visible { opacity: 1; pointer-events: auto; }
+    .modale-content {
+      background: #fbfaf6; width: 100%; max-width: 600px; border-radius: 16px;
+      padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
+      border-top: 15px solid #10b981; color: #111;
+    }
+    .modale-header {
+      color: #10b981; font-family: var(--titre, sans-serif); font-size: 2.2rem;
+      font-weight: 900; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .modale-stat {
+      font-family: monospace; font-size: 2.2rem; font-weight: bold; color: #fbbf24;
+      background: #000; padding: 10px 20px; border-radius: 8px; display: inline-block;
+      margin-bottom: 20px; border: 2px solid #fbbf24;
+    }
+    .modale-explication {
+      text-align: left; background: #f0f4f2; border-left: 4px solid #10b981;
+      padding: 18px 22px; font-size: 1.05rem; line-height: 1.6; border-radius: 0 8px 8px 0;
+      margin-bottom: 25px; color: #333;
+    }
+    
+    .btn-action {
+      background: #10b981; color: #000; border: none; padding: 12px 24px;
+      font-family: var(--titre, sans-serif); font-weight: 800; font-size: 1.2rem;
+      border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: transform 0.2s, background 0.2s; text-transform: uppercase; margin-top: 10px;
+    }
+    .btn-action:hover { transform: scale(1.05); background: #34d399; }
+
+    #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 50; }
+    .flash-anim { animation: flash-bang 0.8s ease-out forwards; }
+    @keyframes flash-bang { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+  </style>
+</head>
+<body>
+
+  <div class="hud-top">
+    <h2>⚽ Phase 3 : Le Pénalty (Télémétrie)</h2>
+  </div>
+
+  <div class="game-layout">
+    
+    <div class="qte-label" id="qte-text">ÉTAPE 1 : VISÉE (ESPACE)</div>
+
+    <div class="view-container">
+      <div class="canvas-wrapper">
+        <canvas id="terrain-canvas" width="400" height="400"></canvas>
+        <div id="flash-overlay"></div>
+      </div>
+      
+      <div class="qte-container-v" id="jauge-puissance">
+        <div class="qte-barre-fond-v">
+          <div class="qte-curseur-v" id="curseur-v"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-action" id="btn-rejouer" style="display:none; width:100%; max-width:450px;">RÉESSAYER</button>
+
+    <div class="graph-wrapper">
+      <div class="graph-title">Capteur UWB - Vitesse Temps Réel</div>
+      <div id="graphe-vitesse"></div>
+    </div>
+
+  </div>
+
+  <div id="modale-fin">
+    <div class="modale-content">
+      <div class="modale-header" id="modale-titre">BUT ! 🚀</div>
+      <div class="modale-stat" id="modale-vitesse">Vitesse : 118 km/h</div>
+      
+      <div class="modale-explication">
+        Le ballon est équipé d'une puce <strong>UWB (Ultra-Wideband)</strong>. Des antennes autour du stade communiquent avec elle 500 fois par seconde.<br><br>
+        En mesurant le temps de trajet du signal (<em>Time of Flight</em>), l'ordinateur triangule la position du ballon en 3D dans l'espace. En dérivant cette position par rapport au temps écoulé (dx/dt), il calcule sa <strong>vitesse instantanée</strong>.<br><br>
+        C'est le principe du GPS miniaturisé à l'intérieur du cuir !
+      </div>
+
+      <button class="btn-action" onclick="window.location.href='index.html'">Terminer l'entraînement (Retour)</button>
+      <button class="btn-action" id="btn-rejouer-frappe" style="background:#fbbf24; margin-top:10px;">🔄 Tirer à nouveau</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const cvTerrain = document.getElementById('terrain-canvas');
+      const ctxTerrain = cvTerrain.getContext('2d');
+      const curseurV = document.getElementById('curseur-v');
+      const qteText = document.getElementById('qte-text');
+      const jaugePuissance = document.getElementById('jauge-puissance');
+      const modaleFin = document.getElementById('modale-fin');
+      const flashOverlay = document.getElementById('flash-overlay');
+      const btnRejouer = document.getElementById('btn-rejouer');
+      
+      let phase = 'qte_visee'; // 'qte_visee' | 'qte_power' | 'course' | 'vol' | 'fin'
+      let lastTime = performance.now();
+      let animId;
+
+      /* QTE Visée */
+      let viseeX = 200, viseeY = 85;
+      let lockedCibleX = 200, lockedCibleY = 85;
+
+      /* QTE Power */
+      let powerPos = 0; let powerSens = 1; let powerVitesse = 200;
+      let lockedPower = 0;
+
+      /* Tireur */
+      let player = { x: 200, y: 410, scale: 1.2, isRunning: false };
+
+      /* Ballon (Perspective 3D) */
+      let ball = { groundX: 200, groundY: 350, drawX: 200, drawY: 350, scale: 1, radius: 12 };
+      let balleVitesseKmh = 0;
+      let targetVitesseKmh = 0;
+      let volProgress = 0; // 0 to 1
+      let volDuration = 1.0; // secondes
+
+      /* Gardien */
+      let keeper = { x: 200, y: 130, targetX: 200, targetY: 130 };
+
+      /* Graphique Plotly */
+      let tData = [0]; let vData = [0]; let tempsEcouleMS = 0;
+
+      Plotly.newPlot('graphe-vitesse', [{
+        x: tData, y: vData, type: 'scatter', mode: 'lines',
+        line: { color: '#fbbf24', width: 3 }, fill: 'tozeroy', fillcolor: 'rgba(251, 191, 36, 0.2)'
+      }], {
+        margin: { l: 40, r: 20, t: 30, b: 40 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        xaxis: { title: 'Temps (ms)', color: '#a8b8b2', range: [0, 800], gridcolor: 'rgba(16,185,129,0.1)' },
+        yaxis: { title: 'Vitesse (km/h)', color: '#a8b8b2', range: [0, 150], gridcolor: 'rgba(16,185,129,0.1)' }
+      }, { displayModeBar: false, responsive: true });
+
+      function drawAvatar(ctx, x, y, color, scale = 1, isRunning = false, runTime = 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        let bobbing = 0;
+        if (isRunning) {
+          bobbing = Math.sin(runTime * 20) * 4;
+        }
+
+        // Ombre (réduite par le bobbing si en l'air)
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(0, 20 + Math.max(0, -bobbing), 20 - Math.max(0, -bobbing), 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.translate(0, bobbing);
+
+        // Corps
+        ctx.fillStyle = color; 
+        ctx.beginPath();
+        ctx.roundRect(-15, -20, 30, 40, 8);
+        ctx.fill();
+
+        // Tête
+        ctx.fillStyle = '#fca5a5'; 
+        ctx.beginPath();
+        ctx.arc(0, -25, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function dessinerTerrain() {
+        const w = cvTerrain.width; const h = cvTerrain.height;
+        ctxTerrain.clearRect(0, 0, w, h);
+
+        ctxTerrain.fillStyle = '#1e5631'; ctxTerrain.fillRect(0, 0, w, h);
+        
+        let grad = ctxTerrain.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#113a20');
+        grad.addColorStop(1, '#2c7a4b');
+        ctxTerrain.fillStyle = grad;
+        ctxTerrain.fillRect(0, 0, w, h);
+
+        ctxTerrain.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctxTerrain.lineWidth = 2;
+        ctxTerrain.beginPath();
+        ctxTerrain.moveTo(0, 150); ctxTerrain.lineTo(w, 150);
+        ctxTerrain.stroke();
+        
+        ctxTerrain.fillStyle = 'rgba(255,255,255,0.6)';
+        ctxTerrain.beginPath(); ctxTerrain.arc(200, 350, 4, 0, Math.PI*2); ctxTerrain.fill();
+
+        // RENDU CAGE
+        let fX1 = 60, fX2 = 340; 
+        let fYTop = 20, fYBase = 150; 
+        let bX1 = 80, bX2 = 320; 
+        let bYTop = 40, bYBase = 140; 
+
+        ctxTerrain.fillStyle = 'rgba(255,255,255,0.15)';
+        ctxTerrain.beginPath(); ctxTerrain.moveTo(fX1, fYTop); ctxTerrain.lineTo(bX1, bYTop); ctxTerrain.lineTo(bX1, bYBase); ctxTerrain.lineTo(fX1, fYBase); ctxTerrain.fill();
+        ctxTerrain.beginPath(); ctxTerrain.moveTo(fX2, fYTop); ctxTerrain.lineTo(bX2, bYTop); ctxTerrain.lineTo(bX2, bYBase); ctxTerrain.lineTo(fX2, fYBase); ctxTerrain.fill();
+        ctxTerrain.fillRect(bX1, bYTop, bX2 - bX1, bYBase - bYTop); 
+        ctxTerrain.beginPath(); ctxTerrain.moveTo(fX1, fYTop); ctxTerrain.lineTo(fX2, fYTop); ctxTerrain.lineTo(bX2, bYTop); ctxTerrain.lineTo(bX1, bYTop); ctxTerrain.fill();
+
+        ctxTerrain.strokeStyle = '#ffffff'; ctxTerrain.lineWidth = 1;
+        ctxTerrain.strokeRect(bX1, bYTop, bX2 - bX1, bYBase - bYTop);
+        ctxTerrain.beginPath(); ctxTerrain.moveTo(fX1, fYTop); ctxTerrain.lineTo(bX1, bYTop); ctxTerrain.moveTo(fX2, fYTop); ctxTerrain.lineTo(bX2, bYTop); ctxTerrain.moveTo(fX1, fYBase); ctxTerrain.lineTo(bX1, bYBase); ctxTerrain.moveTo(fX2, fYBase); ctxTerrain.lineTo(bX2, bYBase); ctxTerrain.stroke();
+
+        ctxTerrain.lineWidth = 6;
+        ctxTerrain.beginPath(); ctxTerrain.moveTo(fX1, fYBase); ctxTerrain.lineTo(fX1, fYTop); ctxTerrain.lineTo(fX2, fYTop); ctxTerrain.lineTo(fX2, fYBase); ctxTerrain.stroke();
+
+        // Gardien
+        let keeperScale = phase === 'vol' || phase === 'fin' ? 1.5 - 0.3 * (1 - volProgress) : 1.2;
+        drawAvatar(ctxTerrain, keeper.x, keeper.y, '#eab308', keeperScale);
+
+        // Reticule de visée
+        if (phase === 'qte_visee' || phase === 'qte_power') {
+          let cx = phase === 'qte_visee' ? viseeX : lockedCibleX;
+          let cy = phase === 'qte_visee' ? viseeY : lockedCibleY;
+          
+          ctxTerrain.strokeStyle = phase === 'qte_visee' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(251, 191, 36, 0.9)';
+          ctxTerrain.lineWidth = 3;
+          ctxTerrain.beginPath();
+          ctxTerrain.moveTo(cx - 15, cy); ctxTerrain.lineTo(cx + 15, cy);
+          ctxTerrain.moveTo(cx, cy - 15); ctxTerrain.lineTo(cx, cy + 15);
+          ctxTerrain.stroke();
+
+          ctxTerrain.beginPath(); ctxTerrain.arc(cx, cy, 8, 0, Math.PI*2); ctxTerrain.stroke();
+        }
+
+        // Ombre Ballon
+        ctxTerrain.fillStyle = 'rgba(0,0,0,0.4)';
+        ctxTerrain.beginPath();
+        ctxTerrain.ellipse(ball.groundX, ball.groundY + (10 * ball.scale), ball.radius * ball.scale, ball.radius*0.4 * ball.scale, 0, 0, Math.PI * 2);
+        ctxTerrain.fill();
+
+        // Ballon
+        ctxTerrain.fillStyle = '#fff';
+        ctxTerrain.beginPath();
+        ctxTerrain.arc(ball.drawX, ball.drawY, ball.radius * ball.scale, 0, Math.PI * 2);
+        ctxTerrain.fill();
+        ctxTerrain.strokeStyle = '#000';
+        ctxTerrain.lineWidth = 1 * ball.scale;
+        ctxTerrain.stroke();
+
+        // Tireur
+        if (phase !== 'fin') {
+          drawAvatar(ctxTerrain, player.x, player.y, '#0ea5e9', player.scale, player.isRunning, performance.now() / 1000);
+        }
+      }
+
+      let graphUpdateAccumulator = 0;
+      function majGraph(dt) {
+        tempsEcouleMS += dt * 1000;
+        tData.push(tempsEcouleMS); vData.push(balleVitesseKmh);
+        graphUpdateAccumulator += dt;
+        if (graphUpdateAccumulator > 0.03) {
+          Plotly.react('graphe-vitesse', [{
+            x: tData, y: vData, type: 'scatter', mode: 'lines',
+            line: { color: (targetVitesseKmh > 90 ? '#fbbf24' : '#ef4444'), width: 3 },
+            fill: 'tozeroy', fillcolor: (targetVitesseKmh > 90 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)')
+          }], document.getElementById('graphe-vitesse').layout);
+          graphUpdateAccumulator = 0;
+        }
+      }
+
+      function loop(time) {
+        let dt = (time - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.016; 
+        lastTime = time;
+
+        if (phase === 'qte_visee') {
+          let timeSec = time / 1000;
+          viseeX = 200 + 130 * Math.sin(timeSec * 2.1); 
+          viseeY = 85 + 55 * Math.sin(timeSec * 3.4);
+          dessinerTerrain();
+
+        } else if (phase === 'qte_power') {
+          powerPos += powerSens * powerVitesse * dt;
+          if (powerPos > 100) { powerPos = 100; powerSens = -1; }
+          if (powerPos < 0) { powerPos = 0; powerSens = 1; }
+          curseurV.style.bottom = powerPos + '%';
+          dessinerTerrain();
+
+        } else if (phase === 'course') {
+          player.y -= 150 * dt; // Court vers le ballon
+          if (player.y <= 360) {
+            player.y = 360;
+            player.isRunning = false;
+            phase = 'vol';
+            
+            // Init Vol
+            targetVitesseKmh = 50 + (lockedPower / 100) * 85; 
+            balleVitesseKmh = targetVitesseKmh;
+            volDuration = 1.0 - (lockedPower / 100) * 0.5; // Entre 0.5s et 1.0s
+            volProgress = 0;
+
+            let powerRatio = lockedPower / 100;
+            let gkReachRatio = 0.3 + (1 - powerRatio) * 0.7; // Gardien a plus d'allonge si tir mou
+            keeper.targetX = 200 + (lockedCibleX - 200) * gkReachRatio;
+            keeper.targetY = lockedCibleY;
+
+            tData.push(0); vData.push(balleVitesseKmh);
+          }
+          dessinerTerrain();
+
+        } else if (phase === 'vol') {
+          volProgress += dt / volDuration;
+          if (volProgress > 1) volProgress = 1;
+
+          // Gardien Plonge
+          keeper.x += (keeper.targetX - keeper.x) * 8 * dt;
+          keeper.y += (keeper.targetY - keeper.y) * 8 * dt;
+
+          // Trajectoire Sol (Ground X/Y)
+          ball.groundX = 200 + (lockedCibleX - 200) * volProgress;
+          ball.groundY = 350 + (150 - 350) * volProgress;
+          ball.drawX = ball.groundX;
+
+          // Trajectoire Hauteur Z
+          let endZ = 150 - lockedCibleY; // hauteur finale au niveau de la ligne (Y=150)
+          let arch = 50 * (1 - lockedPower / 100); // arc lobé si tir mou
+          let heightZ = endZ * volProgress + arch * volProgress * (1 - volProgress);
+          
+          ball.drawY = ball.groundY - heightZ;
+          ball.scale = 1.0 - 0.7 * volProgress; // De 1.0 à 0.3
+          if(ball.scale < 0) ball.scale = 0;
+
+          balleVitesseKmh -= (targetVitesseKmh * 0.1) * dt; 
+          if (balleVitesseKmh < 0) balleVitesseKmh = 0;
+
+          majGraph(dt);
+          dessinerTerrain();
+
+          if (volProgress === 1) {
+            phase = 'fin';
+            balleVitesseKmh = 0; majGraph(0.01);
+            dessinerTerrain();
+
+            // Hitbox logique (Cadre effectif un peu plus large que le visuel interne)
+            let dansLeCadre = (lockedCibleX >= 65 && lockedCibleX <= 335 && lockedCibleY >= 25 && lockedCibleY <= 145);
+            let distToKeeper = Math.hypot(lockedCibleX - keeper.x, lockedCibleY - keeper.y);
+            let arretGoal = distToKeeper < 50;
+
+            let resultTitre = "";
+            let resultColor = "";
+
+            if (!dansLeCadre) {
+              resultTitre = "À CÔTÉ ! 🤦";
+              resultColor = "#fbbf24";
+            } else if (arretGoal) {
+              resultTitre = "ARRÊT DU GARDIEN ! 🧤";
+              resultColor = "#ef4444";
+            } else {
+              resultTitre = "BUT ! 🚀";
+              resultColor = "#10b981";
+              flashOverlay.classList.add('flash-anim');
+            }
+
+            document.getElementById('modale-titre').textContent = resultTitre;
+            document.getElementById('modale-titre').style.color = resultColor;
+            document.getElementById('modale-vitesse').textContent = "Vitesse : " + Math.round(targetVitesseKmh) + " km/h";
+            
+            setTimeout(() => {
+              if (resultTitre.includes("À CÔTÉ") || resultTitre.includes("ARRÊT")) {
+                btnRejouer.style.display = 'block';
+              } else {
+                modaleFin.classList.add('visible');
+              }
+            }, 800);
+          }
+        }
+
+        animId = requestAnimationFrame(loop);
+      }
+
+      function action() {
+        if (phase === 'qte_visee') {
+          lockedCibleX = viseeX;
+          lockedCibleY = viseeY;
+          phase = 'qte_power';
+          qteText.textContent = "ÉTAPE 2 : PUISSANCE (ESPACE)";
+          jaugePuissance.style.visibility = 'visible';
+        } else if (phase === 'qte_power') {
+          lockedPower = powerPos;
+          phase = 'course';
+          player.isRunning = true;
+          qteText.textContent = "FRAPPE !";
+          curseurV.style.background = '#fbbf24';
+        }
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          action();
+        }
+      });
+
+      function resetGame() {
+        if (animId) cancelAnimationFrame(animId);
+        phase = 'qte_visee';
+        player = { x: 200, y: 410, scale: 1.2, isRunning: false };
+        ball = { groundX: 200, groundY: 350, drawX: 200, drawY: 350, scale: 1, radius: 12 };
+        keeper = { x: 200, y: 130, targetX: 200, targetY: 130 };
+        tData = [0]; vData = [0]; tempsEcouleMS = 0;
+        powerPos = 0;
+        qteText.textContent = "ÉTAPE 1 : VISÉE (ESPACE)";
+        jaugePuissance.style.visibility = 'hidden';
+        curseurV.style.background = '#fff';
+        btnRejouer.style.display = 'none';
+        modaleFin.classList.remove('visible');
+        
+        Plotly.react('graphe-vitesse', [{
+          x: tData, y: vData, type: 'scatter', mode: 'lines',
+          line: { color: '#fbbf24', width: 3 }, fill: 'tozeroy', fillcolor: 'rgba(251, 191, 36, 0.2)'
+        }], document.getElementById('graphe-vitesse').layout);
+        
+        lastTime = performance.now();
+        animId = requestAnimationFrame(loop);
+      }
+
+      btnRejouer.addEventListener('click', resetGame);
+      document.getElementById('btn-rejouer-frappe').addEventListener('click', resetGame);
+
+      animId = requestAnimationFrame(loop);
+
+    })();
+  </script>
+</body>
+</html>

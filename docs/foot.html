@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contre-Attaque Cardio — Lis un cœur</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #00120b;
+      color: #eafff5;
+      font-family: var(--texte, sans-serif);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* En-tête HUD */
+    .hud-top {
+      background: linear-gradient(135deg, #0c3d2b 0%, #16302a 100%);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin: 20px 0;
+      box-shadow: 0 8px 28px rgba(14, 50, 38, 0.4);
+      border: 1px solid rgba(14,159,110,0.3);
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+    }
+    .hud-top h2 {
+      margin: 0;
+      color: #34d399;
+      font-family: var(--titre, sans-serif);
+      font-weight: 800;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Conteneur principal */
+    .game-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    /* Terrain de foot */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #10b981;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.5);
+    }
+    #terrain {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #1e5631;
+    }
+
+    .shake-anim {
+      animation: shake 0.4s ease-in-out;
+    }
+    @keyframes shake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-10px, 0); }
+      40% { transform: translate(10px, 0); }
+      60% { transform: translate(-10px, 0); }
+      80% { transform: translate(10px, 0); }
+      100% { transform: translate(0, 0); }
+    }
+
+    /* HUD Flottant sur le terrain */
+    .floating-hud {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(0, 20, 10, 0.85);
+      border: 1px solid #10b981;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #fff;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .hud-box span { color: #fbbf24; font-size: 1.3rem; }
+    .hud-bpm span { color: #e11d48; }
+
+    #hud-dodge {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 20, 10, 0.85);
+      border: 2px solid #10b981;
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-family: var(--titre, sans-serif);
+      font-weight: bold;
+      color: #10b981;
+      font-size: 1rem;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    #hud-dodge.cooldown {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* Message de punition "TACKLE" */
+    #stumble-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ef4444;
+      font-family: var(--titre, sans-serif);
+      font-weight: 900;
+      font-size: 3rem;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .stumble-anim {
+      animation: flash-error 0.6s ease-out;
+    }
+    @keyframes flash-error {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Overlay tutoriel */
+    #tuto-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,18,8,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    #tuto-overlay h3 { color: #10b981; font-family: var(--titre, sans-serif); font-size: 1.8rem; margin: 0 0 15px; }
+    #tuto-overlay p { color: #fff; font-size: 0.95rem; margin-bottom: 20px; line-height: 1.4; }
+    
+    .btn-diff-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 250px;
+    }
+    
+    .btn-action {
+      background: #10b981;
+      color: #000;
+      border: none;
+      padding: 12px 16px;
+      font-family: var(--titre, sans-serif);
+      font-weight: 800;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transition: transform 0.2s, background 0.2s;
+      text-transform: uppercase;
+    }
+    .btn-action:hover { transform: scale(1.05); background: #34d399; }
+    
+    .btn-amateur { background: #34d399; }
+    .btn-pro { background: #fbbf24; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4); }
+    .btn-pro:hover { background: #fcd34d; }
+    .btn-mbappe { background: #ef4444; color: #fff; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
+    .btn-mbappe:hover { background: #f87171; }
+
+    /* Graphe BPM */
+    .graph-wrapper {
+      width: 100%;
+      background: #061410;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 10px;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .graph-title {
+      position: absolute;
+      top: 10px;
+      left: 15px;
+      font-size: 0.8rem;
+      color: rgba(16, 185, 129, 0.6);
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+    }
+    #graphe-bpm {
+      display: block;
+      width: 100%;
+      height: 120px;
+    }
+
+    /* Modale de fin pédagogique */
+    #modale-fin {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    #modale-fin.visible { opacity: 1; pointer-events: auto; }
+    .modale-content {
+      background: #fbfaf6;
+      width: 100%;
+      max-width: 550px;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      text-align: center;
+      border-top: 15px solid #10b981;
+      color: #111;
+    }
+    .modale-header {
+      color: #10b981;
+      font-family: var(--titre, sans-serif);
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .modale-stat {
+      font-family: monospace;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #e11d48;
+      background: rgba(225, 29, 72, 0.1);
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .modale-explication {
+      text-align: left;
+      background: #f0f4f2;
+      border-left: 4px solid #10b981;
+      padding: 15px 20px;
+      font-size: 1rem;
+      line-height: 1.6;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 25px;
+      color: #333;
+    }
+    .modale-explication strong { color: #10b981; }
+
+    /* Keyboard hints */
+    .key-hints { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+    .key-btn {
+      background: #333; border: 2px solid #555; color: #fff; padding: 4px 10px;
+      border-radius: 6px; font-weight: bold; font-family: monospace; box-shadow: 0 4px 0 #111;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hud-top">
+    <h2>⚽ Contre-Attaque : Analyse Cardio</h2>
+  </div>
+
+  <div class="game-layout">
+    <div class="canvas-wrapper" id="canvas-container">
+      <canvas id="terrain" width="400" height="500"></canvas>
+      
+      <div class="floating-hud">
+        <div class="hud-box">DIST: <span id="dist-val">0</span> / 200m</div>
+        <div class="hud-box hud-bpm">BPM: <span id="bpm-val">60</span></div>
+      </div>
+      
+      <div id="hud-dodge">ESQUIVE : PRÊTE</div>
+      <div id="stumble-msg">TACKLE !</div>
+
+      <div id="tuto-overlay">
+        <h3>Sprint & Esquive</h3>
+        <p>
+          Atteins la surface adverse (200m). La vitesse augmente <strong>automatiquement</strong>.<br>
+          Utilise <strong>←</strong> et <strong>→</strong> pour éviter les tacles !<br>
+          Appuie sur <strong>Espace</strong> pour faire une ROULETTE (Invulnérable).
+        </p>
+        <div class="key-hints">
+          <div class="key-btn">← Gauche</div>
+          <div class="key-btn">Droite →</div>
+          <div class="key-btn">Espace (Roulette)</div>
+        </div>
+        
+        <div class="btn-diff-group">
+          <button class="btn-action btn-amateur" onclick="startGame('amateur')">Amateur (Lent)</button>
+          <button class="btn-action btn-pro" onclick="startGame('pro')">Pro (Normal)</button>
+          <button class="btn-action btn-mbappe" onclick="startGame('mbappe')">Mbappé (Extrême)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="graph-wrapper">
+      <div class="graph-title">Signal PPG (Capteur Optique)</div>
+      <canvas id="graphe-bpm" width="600" height="120"></canvas>
+    </div>
+  </div>
+
+  <div id="modale-fin">
+    <div class="modale-content">
+      <div class="modale-header">FIN DU SPRINT !</div>
+      <div class="modale-stat">Pic cardiaque : <span id="pic-bpm-val">180</span> BPM</div>
+      
+      <div class="modale-explication">
+        Comment la montre connectée du joueur a mesuré ça en plein match ?<br><br>
+        Grâce à la <strong>Photopléthysmographie (PPG)</strong>. Les LED vertes sous la montre éclairent la peau. À chaque battement, l'afflux de sang absorbe plus de lumière. Le capteur optique analyse ces minuscules variations de lumière réfléchie pour dessiner la courbe que vous venez de voir et en déduire le rythme cardiaque instantané.
+      </div>
+
+      <button class="btn-action" onclick="window.location.href='foot_var.html'">Passer à la VAR (Phase 2)</button>
+      <button class="btn-action" id="btn-rejouer-sprint" style="background:#fbbf24; margin-top:10px;">🔄 Rejouer la course</button>
+    </div>
+  </div>
+
+  <script>
+    let isPlaying = false;
+      
+    // Auto-runner state
+    let distance = 0; // max 200
+    let speed = 5; // base speed
+    let bpm = 60; 
+    let maxBpmAtteint = 60;
+    let scrollY = 0;
+    
+    // Difficulty Settings
+    let diff = { maxSpeed: 50, accel: 0.4, spawnRateMult: 1.0, minSpawnRate: 0.4 };
+    
+    // Player
+    let currentLane = 0; // -1 (Gauche), 0 (Centre), 1 (Droite)
+    let playerY = 400; // Y base
+    const playerSize = { w: 30, h: 40 };
+
+    // Dodge Mechanic
+    let invincibleTimer = 0;
+    let dodgeCooldown = 0;
+    const HUD_DODGE = document.getElementById('hud-dodge');
+
+    // Obstacles
+    let defenders = [];
+    let spawnTimer = 0;
+    
+    // PPG
+    const cvGraph = document.getElementById('graphe-bpm');
+    const ctxGraph = cvGraph.getContext('2d');
+    let graphPoints = []; 
+    let ppgPhase = 0; 
+    
+    let lastTime = 0;
+    let animId;
+
+    function resizeGraph() {
+      const rect = cvGraph.parentElement.getBoundingClientRect();
+      cvGraph.width = rect.width - 20;
+      while(graphPoints.length < cvGraph.width) graphPoints.push(0);
+      if(graphPoints.length > cvGraph.width) graphPoints.length = cvGraph.width;
+    }
+    window.addEventListener('resize', resizeGraph);
+    resizeGraph();
+
+    function startGame(mode) {
+      if (mode === 'amateur') {
+        diff = { maxSpeed: 30, accel: 0.2, spawnRateMult: 1.5, minSpawnRate: 0.8 };
+      } else if (mode === 'pro') {
+        diff = { maxSpeed: 50, accel: 0.4, spawnRateMult: 1.0, minSpawnRate: 0.4 };
+      } else if (mode === 'mbappe') {
+        diff = { maxSpeed: 80, accel: 0.5, spawnRateMult: 0.8, minSpawnRate: 0.35 };
+      }
+      
+      document.getElementById('tuto-overlay').style.display = 'none';
+      isPlaying = true;
+      lastTime = performance.now();
+      animId = requestAnimationFrame(loop);
+    }
+    
+    window.startGame = startGame;
+
+    // Controls
+    window.addEventListener('keydown', (e) => {
+      if (!isPlaying) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentLane > -1) currentLane--;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentLane < 1) currentLane++;
+      } else if (e.code === 'Space' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (dodgeCooldown <= 0) {
+          invincibleTimer = 0.5; // 0.5 sec of invulnerability
+          dodgeCooldown = 3.0; // 3 sec cooldown
+        }
+      }
+    });
+
+    // PPG Simulation
+    function evalPPG(phase) {
+      let y = 0;
+      if (phase < 0.2) y = Math.sin((phase / 0.2) * (Math.PI / 2));
+      else if (phase < 0.5) y = 1 - ((phase - 0.2) / 0.3) * 0.7; 
+      else if (phase < 0.7) y = 0.3 + Math.sin(((phase - 0.5) / 0.2) * Math.PI) * 0.15; 
+      else y = 0.3 * (1 - ((phase - 0.7) / 0.3)); 
+      y += (Math.random() - 0.5) * 0.04;
+      return y;
+    }
+
+    function updateDodgeHUD() {
+      if (dodgeCooldown > 0) {
+        HUD_DODGE.classList.add('cooldown');
+        HUD_DODGE.textContent = `ESQUIVE : ${dodgeCooldown.toFixed(1)}s`;
+      } else {
+        HUD_DODGE.classList.remove('cooldown');
+        HUD_DODGE.textContent = `ESQUIVE : PRÊTE`;
+      }
+    }
+
+    function loop(time) {
+      if (!isPlaying) return;
+      let dt = (time - lastTime) / 1000;
+      if (dt > 0.1) dt = 0.016;
+      lastTime = time;
+
+      // Update timers
+      if (invincibleTimer > 0) invincibleTimer -= dt;
+      if (dodgeCooldown > 0) {
+        dodgeCooldown -= dt;
+        if (dodgeCooldown < 0) dodgeCooldown = 0;
+      }
+      updateDodgeHUD();
+
+      // Auto accelerate
+      speed += (diff.maxSpeed - speed) * diff.accel * dt;
+      if (speed > diff.maxSpeed) speed = diff.maxSpeed;
+
+      // Distance (200m max)
+      distance += (speed * 0.3) * dt;
+      if (distance >= 200) distance = 200;
+
+      // BPM follows speed
+      let targetBpm = 60 + (speed / diff.maxSpeed) * 130; 
+      bpm += (targetBpm - bpm) * 2 * dt; 
+      if (bpm > maxBpmAtteint) maxBpmAtteint = bpm;
+
+      // Spawn Defenders (Smart Spawn)
+      spawnTimer += dt;
+      let spawnRate = (1.0 - (speed / diff.maxSpeed) * 0.7) * diff.spawnRateMult; 
+      if (spawnRate < diff.minSpawnRate) spawnRate = diff.minSpawnRate;
+
+      if (spawnTimer >= spawnRate) {
+        spawnTimer = 0;
+        
+        // Garanti 1 couloir vide
+        let emptyLane = Math.floor(Math.random() * 3) - 1; 
+        let lanes = [-1, 0, 1];
+        lanes.splice(lanes.indexOf(emptyLane), 1); // retire le couloir vide
+        
+        // On spawn 1 ou 2 défenseurs sur les couloirs restants
+        let count = Math.random() < 0.4 ? 1 : 2;
+        
+        defenders.push({ lane: lanes[0], y: -50, hit: false, offset: Math.random() * Math.PI * 2 });
+        if (count === 2) {
+          defenders.push({ lane: lanes[1], y: -50, hit: false, offset: Math.random() * Math.PI * 2 });
+        }
+      }
+
+      // Update Defenders & Collision
+      let px = 200 + (currentLane * 100);
+      let playerRect = { x: px - playerSize.w/2, y: playerY - playerSize.h/2, w: playerSize.w, h: playerSize.h };
+
+      for (let i = defenders.length - 1; i >= 0; i--) {
+        let d = defenders[i];
+        d.y += (speed * 18) * dt; 
+        
+        if (!d.hit) {
+          let dx = 200 + (d.lane * 100);
+          let defRect = { x: dx - playerSize.w/2, y: d.y - playerSize.h/2, w: playerSize.w, h: playerSize.h };
+
+          // AABB Collision
+          if (playerRect.x < defRect.x + defRect.w &&
+              playerRect.x + playerRect.w > defRect.x &&
+              playerRect.y < defRect.y + defRect.h &&
+              playerRect.y + playerRect.h > defRect.y) {
+            
+            if (invincibleTimer > 0) {
+              // Roulette destroy
+              d.hit = true;
+            } else {
+              // Tackle!
+              d.hit = true;
+              speed = 5; 
+              bpm = 100;
+              
+              // Visuals
+              const stumbleMsg = document.getElementById('stumble-msg');
+              stumbleMsg.classList.remove('stumble-anim');
+              void stumbleMsg.offsetWidth; 
+              stumbleMsg.classList.add('stumble-anim');
+              
+              const container = document.getElementById('canvas-container');
+              container.classList.remove('shake-anim');
+              void container.offsetWidth;
+              container.classList.add('shake-anim');
+            }
+          }
+        }
+
+        if (d.y > 600) defenders.splice(i, 1);
+      }
+
+      document.getElementById('dist-val').textContent = Math.floor(distance);
+      document.getElementById('bpm-val').textContent = Math.round(bpm);
+
+      dessinerTerrain(dt, time);
+      dessinerGraphe(dt);
+
+      if (distance >= 200) {
+        isPlaying = false;
+        if (animId) cancelAnimationFrame(animId);
+        document.getElementById('pic-bpm-val').textContent = Math.round(maxBpmAtteint);
+        setTimeout(() => { document.getElementById('modale-fin').classList.add('visible'); }, 500);
+        return;
+      }
+
+      animId = requestAnimationFrame(loop);
+    }
+
+    document.getElementById('btn-rejouer-sprint').addEventListener('click', () => {
+      document.getElementById('modale-fin').classList.remove('visible');
+      document.getElementById('tuto-overlay').style.display = 'flex';
+      
+      distance = 0;
+      speed = 5;
+      bpm = 60;
+      maxBpmAtteint = 60;
+      scrollY = 0;
+      currentLane = 0;
+      invincibleTimer = 0;
+      dodgeCooldown = 0;
+      defenders = [];
+      spawnTimer = 0;
+      ppgPhase = 0;
+      graphPoints = [];
+      resizeGraph();
+      
+      document.getElementById('dist-val').textContent = "0";
+      document.getElementById('bpm-val').textContent = "60";
+      dessinerTerrain(0, performance.now());
+      dessinerGraphe(0);
+    });
+
+    const cvTerrain = document.getElementById('terrain');
+    const ctxTerrain = cvTerrain.getContext('2d');
+
+    function drawAvatar(ctx, x, y, color, tremble, timeOffset = 0, isPlayer = false) {
+      ctx.save();
+      ctx.translate(x, y);
+      
+      ctx.translate(tremble, tremble);
+
+      // Animation de la roulette
+      if (isPlayer && invincibleTimer > 0) {
+        let rotation = (invincibleTimer / 0.5) * Math.PI * 4; // Fait 2 tours complets
+        ctx.rotate(rotation);
+      }
+
+      // Ombre
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(0, 20, 25, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mouvement de course
+      let courseAnim = Math.sin((performance.now() + timeOffset) * 0.015) * 5;
+      
+      // Halo si invulnérable
+      if (isPlayer && invincibleTimer > 0) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#10b981';
+      }
+
+      // Corps
+      ctx.fillStyle = color; 
+      ctx.beginPath();
+      ctx.roundRect(-15, -20 + courseAnim, 30, 40, 8);
+      ctx.fill();
+
+      // Tête
+      ctx.fillStyle = '#fca5a5'; 
+      ctx.beginPath();
+      ctx.arc(0, -25 + courseAnim, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function dessinerTerrain(dt, time) {
+      const w = cvTerrain.width;
+      const h = cvTerrain.height;
+      
+      scrollY += (speed * 25) * dt; 
+      if (scrollY > 100) scrollY -= 100; 
+
+      // Grass
+      ctxTerrain.fillStyle = '#1e5631';
+      ctxTerrain.fillRect(0, 0, w, h);
+      
+      ctxTerrain.fillStyle = '#1b4d2c'; 
+      for(let y = -100 + scrollY; y < h; y += 100) {
+        ctxTerrain.fillRect(0, y, w, 50);
+      }
+
+      // Lanes (white dashed)
+      ctxTerrain.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctxTerrain.lineWidth = 2;
+      ctxTerrain.setLineDash([20, 20]);
+      ctxTerrain.lineDashOffset = -scrollY;
+      
+      ctxTerrain.beginPath();
+      ctxTerrain.moveTo(150, 0); ctxTerrain.lineTo(150, h);
+      ctxTerrain.moveTo(250, 0); ctxTerrain.lineTo(250, h);
+      ctxTerrain.stroke();
+      ctxTerrain.setLineDash([]);
+
+      // Bounds
+      ctxTerrain.fillStyle = '#ffffff';
+      ctxTerrain.fillRect(20, 0, 5, h);
+      ctxTerrain.fillRect(w - 25, 0, 5, h);
+
+      // Defenders
+      defenders.forEach(d => {
+        if (d.hit) return; 
+        let dx = 200 + (d.lane * 100);
+        drawAvatar(ctxTerrain, dx, d.y, '#ef4444', 0, d.offset * 1000, false);
+      });
+
+      // Player
+      let px = 200 + (currentLane * 100);
+      let tremble = (Math.random() - 0.5) * (speed * 0.06);
+      drawAvatar(ctxTerrain, px, playerY, '#0ea5e9', tremble, 0, true);
+
+      // Speed lines
+      if (speed > 15) {
+        ctxTerrain.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctxTerrain.lineWidth = 2;
+        ctxTerrain.beginPath();
+        for(let i=0; i<4; i++) {
+          let rx = Math.random() * w;
+          let ry = Math.random() * h;
+          let len = speed * 2 + Math.random() * 25;
+          ctxTerrain.moveTo(rx, ry);
+          ctxTerrain.lineTo(rx, ry + len);
+        }
+        ctxTerrain.stroke();
+      }
+    }
+
+    function dessinerGraphe(dt) {
+      const w = cvGraph.width;
+      const h = cvGraph.height;
+
+      let freq = bpm / 60;
+      ppgPhase += freq * dt;
+      if (ppgPhase >= 1) ppgPhase -= 1; 
+
+      let currentY = evalPPG(ppgPhase);
+
+      let shiftPx = 3; 
+      for (let i = 0; i < shiftPx; i++) {
+        graphPoints.shift();
+        graphPoints.push(currentY);
+      }
+
+      ctxGraph.clearRect(0, 0, w, h);
+
+      ctxGraph.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+      ctxGraph.lineWidth = 1;
+      ctxGraph.beginPath();
+      for(let x = 0; x < w; x += 40) { ctxGraph.moveTo(x, 0); ctxGraph.lineTo(x, h); }
+      for(let y = 0; y < h; y += 40) { ctxGraph.moveTo(0, y); ctxGraph.lineTo(w, y); }
+      ctxGraph.stroke();
+
+      ctxGraph.strokeStyle = '#10b981'; 
+      ctxGraph.lineWidth = 3;
+      ctxGraph.lineJoin = 'round';
+      ctxGraph.beginPath();
+      
+      for (let i = 0; i < w; i++) {
+        let py = h - 20 - (graphPoints[i] * (h - 40));
+        if (i === 0) ctxGraph.moveTo(i, py);
+        else ctxGraph.lineTo(i, py);
+      }
+      ctxGraph.stroke();
+
+      ctxGraph.lineTo(w, h);
+      ctxGraph.lineTo(0, h);
+      ctxGraph.fillStyle = 'rgba(16, 185, 129, 0.1)';
+      ctxGraph.fill();
+
+      let lastVal = graphPoints[w-1];
+      let headY = h - 20 - (lastVal * (h - 40));
+      ctxGraph.fillStyle = '#fff';
+      ctxGraph.beginPath();
+      ctxGraph.arc(w - 2, headY, 4, 0, Math.PI * 2);
+      ctxGraph.fill();
+      ctxGraph.fillStyle = 'rgba(16, 185, 129, 0.5)';
+      ctxGraph.beginPath();
+      ctxGraph.arc(w - 2, headY, 10, 0, Math.PI * 2);
+      ctxGraph.fill();
+    }
+    
+    dessinerTerrain(0, 0);
+    dessinerGraphe(0);
+
+  </script>
+</body>
+</html>

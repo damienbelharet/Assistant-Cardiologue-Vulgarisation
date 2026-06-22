@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salle VAR (IMU) — Lis un cœur</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body {
+      background: #00120b; color: #eafff5; font-family: var(--texte, sans-serif);
+      margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden;
+    }
+    .hud-top {
+      background: linear-gradient(135deg, #0c3d2b 0%, #16302a 100%); border-radius: 12px;
+      padding: 16px 24px; margin: 20px 0; box-shadow: 0 8px 28px rgba(14, 50, 38, 0.4);
+      border: 1px solid rgba(14,159,110,0.3); width: 90%; max-width: 800px; text-align: center;
+    }
+    .hud-top h2 { margin: 0; color: #34d399; font-family: var(--titre, sans-serif); font-weight: 800; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .game-layout { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 800px; }
+    .video-monitor { width: 100%; background: #111; border: 4px solid #222; border-radius: 8px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); position: relative; }
+    .video-header { background: #222; color: #fff; font-family: monospace; padding: 6px 12px; font-size: 0.85rem; display: flex; justify-content: space-between; border-radius: 4px 4px 0 0; }
+    .video-header span.cam { color: #e11d48; font-weight: bold; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 49% {opacity: 1;} 50%, 100% {opacity: 0;} }
+    #var-canvas { display: block; width: 100%; height: 350px; background: #1e5631; border-radius: 0 0 4px 4px; transition: filter 0.3s; }
+    .etat-desynchro { filter: blur(2px) sepia(0.3) contrast(1.1) grayscale(0.2); }
+    .etat-erreur { filter: sepia(0.8) hue-rotate(-30deg) saturate(2); }
+    .etat-net { filter: none; }
+    #monitor-msg {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-family: var(--titre, sans-serif); font-weight: 900; font-size: 2rem;
+      text-transform: uppercase; text-align: center; pointer-events: none;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8); width: 90%; z-index: 10;
+    }
+    .msg-info { color: #fbbf24; } .msg-error { color: #ef4444; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; } .msg-success { color: #10b981; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; }
+    .btn-action {
+      background: #10b981; color: #000; border: none; padding: 12px 24px; font-family: var(--titre, sans-serif); font-weight: 800; font-size: 1.2rem;
+      border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); transition: transform 0.2s, background 0.2s; text-transform: uppercase;
+    }
+    .btn-action:hover { transform: scale(1.05); background: #34d399; }
+    .btn-red { background: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); } .btn-red:hover { background: #f87171; }
+    #decision-panel { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: none; gap: 15px; z-index: 10; }
+    .graph-wrapper { width: 100%; background: #061410; border: 2px solid #10b981; border-radius: 12px; padding: 10px; box-sizing: border-box; position: relative; }
+    .graph-title { position: absolute; top: 10px; left: 15px; font-size: 0.8rem; color: rgba(16, 185, 129, 0.8); text-transform: uppercase; font-weight: bold; z-index: 10; }
+    #graphe-imu { width: 100%; height: 250px; display: block; }
+    .instruction-clic { font-size: 0.95rem; color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px dashed #fbbf24; padding: 8px 15px; border-radius: 8px; text-align: center; margin-bottom: 0px; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+    .instruction-clic.visible { opacity: 1; pointer-events: auto; animation: pulse-text 2s infinite; }
+    @keyframes pulse-text { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; text-shadow: 0 0 8px rgba(251, 191, 36, 0.5); } }
+    .regle-box { background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 12px 20px; font-size: 0.95rem; color: #eafff5; width: 100%; max-width: 800px; box-sizing: border-box; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+    .score-badge { background: #fbbf24; color: #000; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 1.1rem; }
+    #modale-fin { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+    #modale-fin.visible { opacity: 1; pointer-events: auto; }
+    .modale-content { background: #fbfaf6; width: 100%; max-width: 600px; border-radius: 16px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; border-top: 15px solid #10b981; color: #111; }
+    .modale-header { color: #10b981; font-family: var(--titre, sans-serif); font-size: 2.2rem; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; }
+    .modale-stat { font-family: monospace; font-size: 2.2rem; font-weight: bold; color: #fbbf24; background: #000; padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 20px; border: 2px solid #fbbf24; }
+    .modale-explication { text-align: left; background: #f0f4f2; border-left: 4px solid #10b981; padding: 18px 22px; font-size: 1.05rem; line-height: 1.6; border-radius: 0 8px 8px 0; margin-bottom: 25px; color: #333; }
+    #btn-start-live { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <div class="hud-top"><h2>⚽ Phase 2 : La Salle VAR</h2></div>
+
+  <div class="game-layout">
+    <div class="regle-box">
+      <div><strong>RÈGLE :</strong> L'attaquant ne doit pas être plus proche de la ligne de but que le dernier défenseur au moment EXACT de la passe.</div>
+      <div class="score-badge" id="score-display">Manche 1/3</div>
+    </div>
+
+    <button class="btn-action" id="btn-start-live">▶ Lancer la Manche 1</button>
+
+    <div class="instruction-clic" id="instruction-clic">
+      🖱️ <strong>ANALYSE REQUISE :</strong> Clique sur le graphique pour isoler le pic de la frappe !
+    </div>
+
+    <div class="video-monitor">
+      <div class="video-header">
+        <span><span class="cam">● REC</span> CAM_TRIBUNE_SUD</span>
+        <span id="video-tc">TC: 00:00.000</span>
+      </div>
+      <canvas id="var-canvas" width="790" height="350" class="etat-desynchro"></canvas>
+      <div id="monitor-msg" class="msg-info">EN ATTENTE...</div>
+      <div id="decision-panel">
+        <button class="btn-action" id="btn-accorder">ACCORDER LE BUT</button>
+        <button class="btn-action btn-red" id="btn-refuser">REFUSER (H-J)</button>
+      </div>
+    </div>
+
+    <div class="graph-wrapper">
+      <div class="graph-title">Capteur Inertiel (IMU) du Ballon</div>
+      <div id="graphe-imu"></div>
+    </div>
+  </div>
+
+  <div id="modale-fin">
+    <div class="modale-content">
+      <h2 class="modale-header" id="modale-titre-final">FIN DE LA VAR</h2>
+      <div class="modale-stat" id="modale-score-final">Score : 0/3</div>
+      <div class="modale-explication">
+        <strong>Comment ça marche en vrai ?</strong><br><br>
+        Le ballon officiel contient une <strong>centrale inertielle (IMU)</strong> mesurant les accélérations à 500 Hz. 
+        En isolant le <strong>pic d'accélération extrême</strong> de la passe, l'ordinateur synchronise les capteurs avec les caméras à la milliseconde près.<br><br>
+        C'est grâce à ça que la ligne de hors-jeu est tracée avec une précision absolue !
+      </div>
+      <button class="btn-action" onclick="window.location.href='foot_frappe.html'">Passer à la Phase 3</button>
+      <button class="btn-action" id="btn-rejouer-var" style="background:#fbbf24; margin-top:10px;">🔄 Rejouer l'analyse</button>
+    </div>
+  </div>
+
+  <script src="progression.js"></script>
+  <script>
+    (function() {
+      'use strict';
+      const cvVar = document.getElementById('var-canvas');
+      const ctxVar = cvVar.getContext('2d');
+      const monitorMsg = document.getElementById('monitor-msg');
+      const decisionPanel = document.getElementById('decision-panel');
+      const instructionClic = document.getElementById('instruction-clic');
+      const modaleFin = document.getElementById('modale-fin');
+      const videoTc = document.getElementById('video-tc');
+      const btnStart = document.getElementById('btn-start-live');
+      const scoreDisplay = document.getElementById('score-display');
+      
+      let MOMENT_PASSE = 1250; 
+      const TOLERANCE = 40; 
+      let phase = 'init'; 
+      let playTime = 0; let lastFrameTime = 0;
+      
+      const scenarios = [0, 1, 2]; // 0: Hors-jeu, 1: En jeu, 2: Limite
+      let currentRound = 0; let score = 0;
+      let tData = []; let gData = [];
+
+      const layout = {
+        margin: { l: 40, r: 20, t: 30, b: 40 },
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        xaxis: { title: 'Temps (ms)', color: '#a8b8b2', gridcolor: 'rgba(16,185,129,0.1)' },
+        yaxis: { title: 'Accélération (G)', color: '#a8b8b2', gridcolor: 'rgba(16,185,129,0.1)' },
+        dragmode: false
+      };
+      const config = { displayModeBar: false, responsive: true };
+
+      function genererGrapheIMU(isInit = false) {
+        tData = []; gData = [];
+        MOMENT_PASSE = 1100 + Math.floor(Math.random() * 300);
+
+        for (let t = 0; t <= 2000; t += 2) {
+          tData.push(t);
+          let force = 1 + (Math.random() - 0.5) * 1.5;
+          if (Math.abs(t - 300) < 15) force += 8 * Math.exp(-Math.pow(t - 300, 2) / 50);
+          if (Math.abs(t - 650) < 15) force += 12 * Math.exp(-Math.pow(t - 650, 2) / 50);
+          if (Math.abs(t - 900) < 15) force += 9 * Math.exp(-Math.pow(t - 900, 2) / 50);
+          if (Math.abs(t - MOMENT_PASSE) < 25) force += 50 * Math.exp(-Math.pow(t - MOMENT_PASSE, 2) / 100);
+          gData.push(force);
+        }
+
+        const trace = { x: tData, y: gData, type: 'scatter', mode: 'lines', line: { color: '#10b981', width: 2 }, hoverinfo: 'x+y' };
+
+        if (isInit) {
+          // Utilisation de .then() pour garantir que le DOM est prêt avant d'attacher l'événement
+          Plotly.newPlot('graphe-imu', [trace], layout, config).then(function(gd) {
+            gd.on('plotly_click', onGraphClick);
+          }).catch(err => console.error(err));
+        } else {
+          Plotly.react('graphe-imu', [trace], layout, config);
+        }
+      }
+
+      function getDefenderX(time) {
+        let baseX = 500; let step = 0;
+        if (time > 800) {
+          let progress = Math.min((time - 800) / 600, 1);
+          step = -30 * (progress * (2 - progress)); 
+        }
+        return baseX + step;
+      }
+
+      function getAttackerX(time) {
+        let defXAtPass = getDefenderX(MOMENT_PASSE);
+        let targetXAtPass = 0;
+        let scenario = scenarios[currentRound];
+        if (scenario === 0) targetXAtPass = defXAtPass + 40;
+        else if (scenario === 1) targetXAtPass = defXAtPass - 40;
+        else targetXAtPass = defXAtPass + 2; 
+
+        let startX = 350; let runDist = targetXAtPass - startX; 
+        let progress = 0;
+        if (time > 500) {
+          progress = Math.min((time - 500) / (MOMENT_PASSE - 500), 1);
+          progress = progress * progress * progress; 
+        }
+        let currentX = startX + runDist * progress;
+        if (time > MOMENT_PASSE) currentX += (time - MOMENT_PASSE) * 0.25; 
+        return currentX;
+      }
+
+      function dessinerFrame(temps_ms, showLine = false) {
+        const w = cvVar.width; const h = cvVar.height;
+        ctxVar.clearRect(0, 0, w, h);
+        ctxVar.fillStyle = '#1e5631'; ctxVar.fillRect(0, 0, w, h);
+        
+        ctxVar.strokeStyle = 'rgba(255,255,255,0.6)'; ctxVar.lineWidth = 3;
+        ctxVar.beginPath(); ctxVar.moveTo(50, 0); ctxVar.lineTo(50, h); ctxVar.stroke();
+        ctxVar.beginPath(); ctxVar.arc(50, h/2, 80, -Math.PI/2, Math.PI/2); ctxVar.stroke();
+
+        let passeurX = 150 + (temps_ms / 2000) * 100; let passeurY = h/2 + 30;
+        let balleX = passeurX + 15; let balleY = passeurY;
+        if (temps_ms > MOMENT_PASSE) {
+          let dt = temps_ms - MOMENT_PASSE;
+          balleX = passeurX + 15 + (dt * 0.6); balleY = passeurY - (dt * 0.15); 
+        }
+
+        let attaquantX = getAttackerX(temps_ms); let attaquantY = h/2 - 60;
+        let defX = getDefenderX(temps_ms); let defY = h/2 - 20;
+
+        function drawPlayer(x, y, color) {
+          ctxVar.fillStyle = color; ctxVar.beginPath(); ctxVar.arc(x, y, 12, 0, Math.PI*2); ctxVar.fill();
+          ctxVar.strokeStyle = '#000'; ctxVar.lineWidth = 2; ctxVar.stroke();
+        }
+
+        drawPlayer(passeurX, passeurY, '#3b82f6');
+        drawPlayer(attaquantX, attaquantY, '#3b82f6');
+        drawPlayer(defX, defY, '#ef4444');
+
+        ctxVar.fillStyle = '#fff'; ctxVar.beginPath(); ctxVar.arc(balleX, balleY, 6, 0, Math.PI*2); ctxVar.fill();
+        ctxVar.strokeStyle = '#000'; ctxVar.lineWidth = 1; ctxVar.stroke();
+
+        if (showLine) {
+          ctxVar.strokeStyle = '#3b82f6'; ctxVar.lineWidth = 4; ctxVar.setLineDash([10, 5]);
+          ctxVar.beginPath(); ctxVar.moveTo(defX, 0); ctxVar.lineTo(defX, h); ctxVar.stroke();
+          ctxVar.setLineDash([]);
+          ctxVar.fillStyle = 'rgba(59, 130, 246, 0.2)'; ctxVar.fillRect(defX - 200, 0, 200, h); 
+        }
+      }
+
+      function loopLive(time) {
+        if (phase !== 'live') return;
+        let dt = (time - lastFrameTime); lastFrameTime = time; playTime += dt;
+        dessinerFrame(playTime);
+        videoTc.textContent = `TC: 00:${(playTime/1000).toFixed(3).padStart(6, '0')}`;
+
+        if (playTime >= MOMENT_PASSE + 200) { 
+          phase = 'var';
+          monitorMsg.textContent = "CHECK VAR"; monitorMsg.className = 'msg-info';
+          cvVar.className = 'etat-desynchro'; instructionClic.classList.add('visible');
+          return;
+        }
+        requestAnimationFrame(loopLive);
+      }
+
+      btnStart.addEventListener('click', () => {
+        btnStart.style.display = 'none'; phase = 'live';
+        lastFrameTime = performance.now(); playTime = 0;
+        monitorMsg.textContent = ""; cvVar.className = 'etat-net';
+        Plotly.relayout('graphe-imu', { shapes: [] });
+        requestAnimationFrame(loopLive);
+      });
+
+      function onGraphClick(data) {
+        if (phase === 'live' || phase === 'init' || phase === 'feedback') return;
+        let clickTime = data.points[0].x;
+        videoTc.textContent = `TC: 00:${(clickTime/1000).toFixed(3).padStart(6, '0')}`;
+        
+        if (Math.abs(clickTime - MOMENT_PASSE) <= TOLERANCE) {
+          phase = 'decision'; cvVar.className = 'etat-net'; monitorMsg.textContent = '';
+          decisionPanel.style.display = 'flex'; instructionClic.classList.remove('visible');
+          dessinerFrame(clickTime, true);
+          try { jouerSon('pop', 0.5); } catch(e){}
+          Plotly.relayout('graphe-imu', { shapes: [{ type: 'line', x0: clickTime, x1: clickTime, y0: 0, y1: 1, yref: 'paper', line: { color: '#e11d48', width: 2, dash: 'dot' } }] });
+        } else {
+          cvVar.className = 'etat-erreur'; monitorMsg.textContent = "MAUVAIS MOMENT"; monitorMsg.className = 'msg-error';
+          decisionPanel.style.display = 'none'; dessinerFrame(clickTime, false);
+          try { jouerSon('erreur', 0.5); } catch(e){}
+          Plotly.relayout('graphe-imu', { shapes: [] });
+        }
+      }
+
+      function resolveDecision(accorde) {
+        phase = 'feedback'; decisionPanel.style.display = 'none';
+        let scenario = scenarios[currentRound];
+        let isCorrect = (scenario === 0 && !accorde) || (scenario === 1 && accorde) || (scenario === 2 && !accorde);
+
+        if (isCorrect) {
+          score++; monitorMsg.textContent = "BONNE DÉCISION !"; monitorMsg.className = 'msg-success';
+          try { jouerSon('succes', 0.5); } catch(e){}
+        } else {
+          monitorMsg.textContent = "ERREUR !"; monitorMsg.className = 'msg-error';
+          try { jouerSon('erreur', 0.5); } catch(e){}
+        }
+
+        setTimeout(() => {
+          currentRound++;
+          if (currentRound < 3) preparerManche(); else afficherModaleFin();
+        }, 2000);
+      }
+
+      function preparerManche() {
+        phase = 'init'; scoreDisplay.textContent = `Manche ${currentRound + 1}/3`;
+        btnStart.textContent = `▶ Lancer la Manche ${currentRound + 1}`; btnStart.style.display = 'block';
+        monitorMsg.textContent = "EN ATTENTE..."; monitorMsg.className = 'msg-info';
+        cvVar.className = 'etat-desynchro'; dessinerFrame(0);
+        genererGrapheIMU(false);
+        Plotly.relayout('graphe-imu', { shapes: [] });
+      }
+
+      function afficherModaleFin() {
+        document.getElementById('modale-score-final').textContent = `Score final : ${score}/3`;
+        document.getElementById('modale-titre-final').textContent = score >= 2 ? "ARBITRAGE VALIDÉ !" : "ARBITRAGE À REVOIR...";
+        document.getElementById('modale-titre-final').style.color = score >= 2 ? "#10b981" : "#ef4444";
+        try { jouerSon(score >= 2 ? 'victoire_module' : 'erreur', 0.6); } catch(e){}
+        modaleFin.classList.add('visible');
+      }
+
+      document.getElementById('btn-accorder').addEventListener('click', () => resolveDecision(true));
+      document.getElementById('btn-refuser').addEventListener('click', () => resolveDecision(false));
+      document.getElementById('btn-rejouer-var').addEventListener('click', () => {
+        modaleFin.classList.remove('visible');
+        currentRound = 0;
+        score = 0;
+        preparerManche();
+      });
+
+      // Init
+      genererGrapheIMU(true);
+      dessinerFrame(0);
+    })();
+  </script>
+</body>
+</html>

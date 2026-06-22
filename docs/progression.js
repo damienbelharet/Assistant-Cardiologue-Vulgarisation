@@ -345,7 +345,7 @@ function lancerConfettis() {
 
 
 /* =====================================================================
-   🛠️ CHEAT CODE DÉVELOPPEUR (Taper "admin" au clavier)
+   🛠️ CHEAT CODES DÉVELOPPEUR (Taper au clavier)
    ===================================================================== */
 var seqTriche = "";
 document.addEventListener("keydown", function(e) {
@@ -355,26 +355,46 @@ document.addEventListener("keydown", function(e) {
     // On garde uniquement les 10 dernières frappes en mémoire
     if (seqTriche.length > 10) seqTriche = seqTriche.slice(-10);
 
-    // Si on détecte le mot magique
+    // CHEAT 1 : "admin" -> Débloque absolument TOUT (fin du jeu)
     if (seqTriche.includes("admin")) {
-      seqTriche = ""; // On reset
+      seqTriche = ""; 
       
       var prog = _lireProgression();
-      // On boucle sur absolument tous les badges existants
       Object.keys(BADGES).forEach(function(id) {
-        prog[id] = { 
-          badge: BADGES[id].nom, 
-          date: new Date().toISOString() 
-        };
+        prog[id] = { badge: BADGES[id].nom, date: new Date().toISOString() };
       });
       
-      // On sauvegarde la triche
       _ecrireProgression(prog);
-      sessionStorage.removeItem("module_recent"); // Évite de lancer une animation
+      sessionStorage.removeItem("module_recent"); 
+      sessionStorage.setItem("radar_revele", "1"); // Révèle le radar aussi
       
-      alert("🛠️ MODE DÉVELOPPEUR ACTIVÉ : Tous les modules sont débloqués !");
+      alert("🛠️ MODE DEV : Tous les modules sont débloqués !");
+      if (!window.location.pathname.endsWith("index.html")) {
+        window.location.href = "index.html";
+      } else {
+        window.location.reload();
+      }
+    }
+
+    // CHEAT 2 : "radar" -> Débloque tout SAUF le radar (pour tester le mot ECHO)
+    if (seqTriche.includes("radar")) {
+      seqTriche = ""; 
       
-      // Téléportation sur la carte principale pour voir le résultat
+      var prog = _lireProgression();
+      Object.keys(BADGES).forEach(function(id) {
+        if (id !== "radar") {
+          prog[id] = { badge: BADGES[id].nom, date: new Date().toISOString() };
+        }
+      });
+      
+      // On s'assure d'effacer les traces du radar s'il avait été fait avant
+      delete prog["radar"];
+      sessionStorage.removeItem("radar_revele"); 
+      sessionStorage.removeItem("module_recent"); 
+      
+      _ecrireProgression(prog);
+      
+      alert("🛠️ MODE TEST : Tout est débloqué SAUF le radar. Va sur l'accueil et tape ECHO !");
       if (!window.location.pathname.endsWith("index.html")) {
         window.location.href = "index.html";
       } else {

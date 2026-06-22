@@ -195,8 +195,10 @@
       border: 1px solid var(--signal-fonce); padding: 12px 20px; border-radius: 8px;
       color: #fff; font-family: monospace; text-align: right; z-index: 5;
     }
-    .hud-vitesse { font-size: 2.6rem; font-weight: bold; color: var(--signal); line-height: 1; margin-bottom: 2px; }
-    .hud-limite { font-size: 0.9rem; color: #a8b8b2; margin-bottom: 5px; }
+    .hud-score { font-size: 2.6rem; font-weight: bold; color: #fbbf24; line-height: 1; }
+    .hud-score-label { font-size: 0.75rem; color: #a8b8b2; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .hud-vitesse { font-size: 1.3rem; font-weight: bold; color: var(--signal); line-height: 1; }
+    .hud-limite { font-size: 0.75rem; color: #a8b8b2; }
 
     /* Flash Final */
     #flash-fin-jeu {
@@ -346,6 +348,18 @@
   <!-- ══════════════════════════════════════════════════════
        2. PHASE 2 — LE DÉLIT DE FUITE (RUNNER)
   ══════════════════════════════════════════════════════ -->
+  <style id="sb-styles">
+    .pv-scoreboard { margin: 4px 0 14px; }
+    .sb-titre { font-weight: 800; font-size: 0.92rem; color: var(--signal, #0e9f6e); margin-bottom: 8px; }
+    .sb-titre span { font-weight: 600; font-size: 0.78rem; color: #888; }
+    .sb-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .sb-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #999; padding: 2px 8px; border-bottom: 1px solid #eee; }
+    .sb-table td { padding: 5px 8px; border-bottom: 1px solid #f3f3f3; }
+    .sb-table td:first-child { width: 34px; text-align: center; }
+    .sb-table tr.sb-cur td { background: #fff7e6; font-weight: 800; color: #b45309; }
+    .sb-table tr.sb-cur td:first-child::after { content: " ◀"; color: #f59e0b; }
+  </style>
+
   <div id="phase-radar">
     <nav class="barre">
       <a class="marque" href="index.html">Lis un <span>cœur</span></a>
@@ -364,7 +378,7 @@
 
       <div class="carte">
         <div class="radar-instructions">
-          Objectif : dépasser <strong style="color:#e11d48;" id="txt-obj-vitesse">130 km/h</strong> pour déclencher le flash du radar !
+          Objectif : <strong>survis le plus longtemps possible</strong> — 2 impacts = Game Over ! Attrape les éclairs pour te sauver et les étoiles pour te transformer !
         </div>
         
         <div class="course-wrap">
@@ -372,26 +386,24 @@
           <div class="radar-ecran-container" id="container-course">
             
             <div id="course-overlay">
-              <h3>DÉMARRAGE MOTEUR</h3>
+              <h3>⚡ ENDLESS RUNNER</h3>
               <p>
-                <strong>🖱️ SOURIS :</strong> Déplace le sous-marin gauche/droite.<br><br>
-                Le moteur accélère tout seul. <strong>Esquive les mines et rochers</strong> !<br>
-                Un impact = <strong style="color:#e11d48;">−40 km/h</strong> de pénalité.
+                <strong>🖱️ SOURIS :</strong> Pilote le sous-marin gauche/droite.<br><br>
+                💀 <strong style="color:#e11d48;">TWO-STRIKE SYSTEM :</strong> 1er impact = le radar apparaît. 2ème impact = <strong>GAME OVER</strong> !<br>
+                🚀 <strong style="color:#e11d48;">Missiles</strong> : ils te visent puis se verrouillent — esquive ! Ils sont ÉNORMES.<br>
+                🐟 <strong style="color:#f59e0b;">Torpilles</strong> : elles fusent des parois. &nbsp; ✨ Frôle un obstacle = bonus de points !<br>
+                ⚡ <strong style="color:#fbbf24;">Éclairs</strong> = vitesse + radar repoussé (retour à 0 strike). &nbsp; 🛡️ <strong style="color:#60a5fa;">Boucliers</strong> = immunité 5 s.<br>
+                ⭐ <strong style="color:#fbbf24;">Étoile (rare)</strong> = Transformation <strong>MECHA-SUB</strong> : 8 s d'invulnérabilité totale + destruction !
               </p>
-              
-              <div class="diff-titre" style="color:var(--signal); margin-top:15px;">Vitesse à atteindre (Rang du Badge)</div>
-              <div class="course-diff-boutons">
-                <button class="course-diff-btn diff-bronze" data-speed="100" data-spawn="1.5" data-rank="bronze">Facile (100 km/h)</button>
-                <button class="course-diff-btn actif" data-speed="130" data-spawn="1.0" data-rank="argent">Normal (130 km/h)</button>
-                <button class="course-diff-btn diff-or" data-speed="200" data-spawn="0.6" data-rank="or">Extrême (200 km/h)</button>
-              </div>
-
+              <div id="course-record" style="color:#fbbf24; font-weight:bold; margin:10px 0 4px; min-height:1.1em;"></div>
               <button class="pp-btn btn-suivant" id="btn-start-course">🚀 JOUER EN PLEIN ÉCRAN</button>
+              <div style="font-size:0.78rem; color:#7f9c8f; margin-top:8px;">Astuce : touche <strong>R</strong> pour recommencer.</div>
             </div>
 
             <div class="hud-course">
-              <div class="hud-limite" id="hud-limite-ui">OBJECTIF: 130 km/h</div>
-              <div class="hud-vitesse" id="hud-vitesse-val">30</div>
+              <div id="hud-score-val" class="hud-score">0</div>
+              <div class="hud-score-label">mètres</div>
+              <div id="hud-vitesse-val" class="hud-vitesse">50 km/h</div>
             </div>
 
             <canvas id="course-canvas" width="600" height="750"></canvas>
@@ -401,10 +413,11 @@
             <!-- MODALE PV : Déplacée à l'intérieur pour rester visible en plein écran -->
             <div id="modale-pv">
               <div class="pv-content">
-                <div class="pv-header">AVIS DE CONTRAVENTION</div>
-                <div class="pv-limite" id="pv-texte-limite">VITESSE LIMITÉE À : 50 km/h</div>
-                <div class="pv-vitesse" id="pv-vitesse-enregistree">134 km/h</div>
-                
+                <div class="pv-header">GRILLÉ PAR LE RADAR !</div>
+                <div id="pv-score" class="pv-vitesse" style="color:#e11d48;">0 m</div>
+                <div class="pv-limite" id="pv-max-vitesse">VITESSE MAXIMALE : 0 km/h</div>
+                <div style="font-size:0.85rem; color:#888; margin:6px 0 16px;">Bronze &gt; 1 000 m · Argent &gt; 3 000 m · Or &gt; 6 000 m</div>
+
                 <div class="pv-explication">
                   <strong>Comment le radar a mesuré cette vitesse ?</strong><br>
                   Il n'a pas pris une simple photo. Le radar a envoyé des dizaines d'ondes radio successives. Comme vous alliez très vite vers le radar, les échos sont revenus de plus en plus rapidement (les ondes se "tassent"). En comparant la différence de temps entre ces échos, l'ordinateur calcule instantanément la vitesse. C'est l'<strong>Effet Doppler</strong> !
@@ -415,6 +428,8 @@
                   En ingénierie biomédicale, on utilise exactement le même radar ! Sauf qu'on l'appelle une <strong>Échographie Doppler</strong>. La sonde "flashe" vos globules rouges : si le sang s'écoule trop vite ou dans le mauvais sens à l'intérieur du cœur, on peut détecter une pathologie cardiaque instantanément.
                 </div>
                 
+                <div id="pv-scoreboard" class="pv-scoreboard"></div>
+
                 <div class="pv-actions">
                   <button class="pv-btn pv-btn-rejouer" id="btn-rejouer-modale">🔄 Rejouer la course</button>
                   <a href="index.html?badge=radar" class="pv-btn pv-btn-badge pv-badge-argent" id="btn-retour-badge">🥈 Retour à l'accueil (Badge Argent)</a>
@@ -663,50 +678,64 @@
 
   creerGrille(); window.addEventListener('resize', initSonarCanvas);
 
+  /* ── Raccourci : taper "next" pour sauter directement à la course radar ── */
+  let _phase2Lancee = false;
+  function passerAuRadar() {
+    if (_phase2Lancee) return;
+    _phase2Lancee = true;
+    ['ecran-intro', 'fond-noir', 'ecran-victoire'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.add('cache'); el.style.display = 'none'; }
+    });
+    const ft = document.getElementById('flash-transition'); if (ft) ft.classList.remove('actif');
+    document.getElementById('phase-radar').style.display = 'block';
+    document.body.classList.remove('sonar-actif');
+    if (typeof initGrapheCourse === 'function') initGrapheCourse();
+  }
+  let _seqNext = '';
+  document.addEventListener('keydown', function (e) {
+    if (document.getElementById('phase-radar').style.display === 'block') return; /* déjà en phase 2 */
+    if (!e.key || e.key.length !== 1) return;
+    _seqNext = (_seqNext + e.key.toLowerCase()).slice(-4);
+    if (_seqNext === 'next') { _seqNext = ''; passerAuRadar(); }
+  });
+  /* Si on arrive par la voie normale (bataille terminée), on neutralise le double-lancement */
+  const _finOrig = finDePartie;
+  finDePartie = function () { _phase2Lancee = true; _finOrig(); };
+
   /* =====================================================================
      2. PHASE 2 — ENDLESS RUNNER SOUS-MARIN (PLEIN ÉCRAN DYNAMIQUE)
      ===================================================================== */
   (function () {
     'use strict';
 
-    /* ── Dimensions du canvas redimensionnable ── */
-    let CW = 600, CH = 750; 
-    let WALL_W   = 60;          
-    const SUB_W    = 28, SUB_H = 60;
-    const SPEED_START = 30;       
-    const CRASH_PENALTY = 40;     
-    const CRASH_MIN    = 30;      
-    const N_WALL_SEGS  = 26;      
+    /* ── Dimensions ── */
+    let CW = 600, CH = 750, WALL_W = 60;
+    const SUB_W = 28, SUB_H = 60, N_WALL_SEGS = 26;
 
-    let SPEED_WIN = 130;
-    let SPAWN_MULT = 1.0;
-    let RANK = 'argent';
-    let auto_accel = 0.043 * (SPEED_WIN / 130);
-
-    /* ── Boutons Difficulté Course ── */
-    document.querySelectorAll('.course-diff-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.course-diff-btn').forEach(b => b.classList.remove('actif'));
-        btn.classList.add('actif');
-        SPEED_WIN = parseInt(btn.dataset.speed);
-        SPAWN_MULT = parseFloat(btn.dataset.spawn);
-        RANK = btn.dataset.rank;
-        document.getElementById('txt-obj-vitesse').textContent = `${SPEED_WIN} km/h`;
-        document.getElementById('hud-limite-ui').textContent = `OBJECTIF: ${SPEED_WIN} km/h`;
-        document.getElementById('pv-texte-limite').textContent = `VITESSE LIMITÉE À : ${Math.floor(SPEED_WIN * 0.4)} km/h`;
-        auto_accel = 0.043 * (SPEED_WIN / 130);
-        initPlotly();
-      });
-    });
+    /* ── Config (Two-Strike System) ── */
+    const CFG = {
+      speedStart: 48, speedAccel: 0.045, speedMin: 30,
+      hitSpeedLoss: 18,
+      boostSpeedGain: 30,
+      mechaSpeedMult: 2.0,
+      mechaDuration: 8
+    };
 
     /* ── État ── */
     let cv, ctx, animId;
-    let jeuEnCours = false, jeuFige = false, victoire = false;
+    let jeuEnCours = false, jeuFige = false;
     let subX = CW / 2, mouseX = CW / 2;
-    let vitesse = SPEED_START, frames = 0, scrollY = 0, flashRed = 0;
-    let obstacles = [], bulles = [], sillagePoints = [];
-    let plotT = [], plotV = [], annots = [], dernierPt = -1, plotInit = false;
-    let hudVit, container;
+    let vitesse, frames, scrollY, flashRed;
+    let score, maxVitesse, radarZoneTop;
+    let radarState; // 0 = hidden, 1 = alert (1st strike), 2 = game over
+    let shieldActif, shieldTimer;
+    let mechaActif, mechaTimer;
+    let obstacles, collectibles, explosionParts, bulles, sillagePoints;
+    let missiles, torpilles, sparks, flotants;
+    let prochainMissile, prochainTorpille;
+    let plotT, plotV, annots, dernierPt, plotInit = false;
+    let hudScore, hudVit, container;
 
     /* ── Parois ── */
     const wL = [], wR = [];
@@ -718,7 +747,6 @@
       }
     }
 
-    /* ── Mouse ── */
     function onMouse(e) {
       if (!cv) return;
       const r = cv.getBoundingClientRect();
@@ -726,24 +754,14 @@
       mouseX = Math.max(wL[0] + SUB_W / 2 + 6, Math.min(wR[0] - SUB_W / 2 - 6, mouseX));
     }
 
-    /* ── Redimensionnement ── */
     function majDimensions() {
       if (document.fullscreenElement) {
-        CW = window.innerWidth;
-        CH = window.innerHeight;
-        // On adapte les murs à la nouvelle taille
-        WALL_W = Math.floor(CW * 0.1); 
-      } else {
-        CW = 600;
-        CH = 750;
-        WALL_W = 60;
-      }
-      cv.width = CW;
-      cv.height = CH;
+        CW = window.innerWidth; CH = window.innerHeight; WALL_W = Math.floor(CW * 0.1);
+      } else { CW = 600; CH = 750; WALL_W = 60; }
+      cv.width = CW; cv.height = CH;
       genParois();
       subX = Math.min(Math.max(subX, wL[0] + 20), wR[0] - 20);
     }
-
     document.addEventListener('fullscreenchange', majDimensions);
 
     /* ── Init ── */
@@ -751,61 +769,175 @@
       cv = document.getElementById('course-canvas');
       cv.width = CW; cv.height = CH;
       ctx = cv.getContext('2d');
+      hudScore  = document.getElementById('hud-score-val');
       hudVit    = document.getElementById('hud-vitesse-val');
       container = document.getElementById('container-course');
-
       genParois();
+      majRecord();
       document.getElementById('course-overlay').style.display = 'flex';
-      
-      document.getElementById('btn-start-course').onclick = async function (ev) {
+      document.getElementById('btn-start-course').onclick = async function(ev) {
         ev.stopPropagation();
-        
-        // Tentative de passage en plein écran
         try {
           if (container.requestFullscreen) await container.requestFullscreen();
           else if (container.webkitRequestFullscreen) await container.webkitRequestFullscreen();
-        } catch(e) { console.warn("Plein écran bloqué ou non supporté", e); }
-        
+        } catch(e) { console.warn('Plein écran bloqué', e); }
         document.getElementById('course-overlay').style.display = 'none';
-        
-        // Délai pour laisser l'API Fullscreen s'appliquer et redimensionner le canvas
-        setTimeout(() => {
-          majDimensions();
-          lancerCourse();
-        }, 200);
+        setTimeout(() => { majDimensions(); lancerCourse(); }, 200);
       };
-      
       initPlotly();
     }
     window.initGrapheCourse = initPhase2;
 
     function lancerCourse() {
-      vitesse = SPEED_START; frames = 0; scrollY = 0;
+      vitesse = CFG.speedStart; maxVitesse = CFG.speedStart;
+      frames = 0; scrollY = 0; flashRed = 0;
+      score = 0;
+      radarZoneTop = CH + 500; // far off-screen
+      radarState = 0;          // safe
+      shieldActif = false; shieldTimer = 0;
+      mechaActif = false; mechaTimer = 0;
       subX = CW / 2; mouseX = CW / 2;
-      obstacles = []; bulles = []; sillagePoints = [];
-      flashRed = 0; jeuFige = false; victoire = false;
+      obstacles = []; collectibles = []; explosionParts = []; bulles = []; sillagePoints = [];
+      missiles = []; torpilles = []; sparks = []; flotants = [];
+      prochainMissile = 600; prochainTorpille = 900;
       plotT = []; plotV = []; annots = []; dernierPt = -1;
+      jeuFige = false;
       container.classList.remove('shake-anim');
+      document.getElementById('modale-pv').classList.remove('visible');
+      document.getElementById('flash-fin-jeu').classList.remove('flash-boom');
       if (animId) cancelAnimationFrame(animId);
+      cv.removeEventListener('mousemove', onMouse);
       cv.addEventListener('mousemove', onMouse);
       jeuEnCours = true;
       initPlotly();
       boucle();
     }
 
-    /* ── Boutons de fin ── */
+    /* Rejouer : on relance immédiatement, sans quitter le plein écran */
     document.getElementById('btn-rejouer-modale').addEventListener('click', () => {
-      document.getElementById('modale-pv').classList.remove('visible');
-      document.getElementById('flash-fin-jeu').classList.remove('flash-boom');
-      jeuEnCours = false;
-      if (animId) cancelAnimationFrame(animId);
-      cv.removeEventListener('mousemove', onMouse);
-      setTimeout(() => document.getElementById('course-overlay').style.display = 'flex', 300);
+      lancerCourse();
+    });
+    document.getElementById('btn-retour-badge').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+    });
+    /* Touche R : recommencer à tout moment */
+    document.addEventListener('keydown', (e) => {
+      if (!container) return;
+      const visible = document.getElementById('phase-radar').style.display === 'block';
+      if (visible && (e.key === 'r' || e.key === 'R') &&
+          document.getElementById('course-overlay').style.display === 'none') {
+        lancerCourse();
+      }
     });
 
-    document.getElementById('btn-retour-badge').addEventListener('click', () => {
-       if (document.fullscreenElement) document.exitFullscreen();
-    });
+    /* ── Helpers effets ── */
+    function secouer() { container.classList.remove('shake-anim'); void container.offsetWidth; container.classList.add('shake-anim'); }
+    function annotImpact(t, label, couleur) {
+      annots.push({ x: +t.toFixed(1), y: Math.round(vitesse), text: label,
+        showarrow: true, arrowhead: 2, arrowcolor: couleur, font: { color: couleur, size: 10 },
+        ax: 0, ay: -32, bordercolor: couleur, borderwidth: 1, bgcolor: '#fff', borderpad: 2 });
+    }
+    function grazeBonus(x, y) {
+      score += 150;
+      sparks.push({ x, y, r: 8, life: 1 });
+      flotants.push({ x, y, txt: '+150 FRÔLE !', life: 1 });
+      try { jouerSon('mini_succes', 0.35); } catch(e) {}
+    }
+
+    /* ══════════════════════════════════════════
+       TWO-STRIKE SYSTEM & MECHA-SUB
+    ══════════════════════════════════════════ */
+    function impactObstacle(x, y, t, label) {
+      // Mecha mode: destroy obstacle, bonus points, no damage
+      if (mechaActif) {
+        spawnExplosion(x, y); spawnExplosion(x, y);
+        score += 200;
+        flotants.push({ x, y, txt: '+200 DÉTRUIT !', life: 1 });
+        try { jouerSon('pop', 0.6); } catch(e) {}
+        return false;
+      }
+      // Shield: absorb
+      if (shieldActif) {
+        spawnExplosion(x, y);
+        try { jouerSon('pop', 0.6); } catch(e) {}
+        return false;
+      }
+      // Two-strike logic
+      if (radarState === 0) {
+        // ── STRIKE 1 : Radar apparaît ──
+        radarState = 1;
+        radarZoneTop = CH - 150;
+        vitesse = Math.max(CFG.speedMin, vitesse - CFG.hitSpeedLoss);
+        flashRed = 14; secouer();
+        spawnExplosion(x, y);
+        flotants.push({ x, y, txt: '⚠️ ALERTE RADAR !', life: 1.5 });
+        try { jouerSon('erreur', 0.5); } catch(e) {}
+        annotImpact(t, label + ' ⚠️', '#ff6b35');
+        return false;
+      } else {
+        // ── STRIKE 2 : GAME OVER ──
+        flashRed = 20; secouer();
+        spawnExplosion(x, y); spawnExplosion(x, y); spawnExplosion(x, y);
+        try { jouerSon('erreur', 0.7); } catch(e) {}
+        annotImpact(t, label + ' 💀', '#e11d48');
+        return true;
+      }
+    }
+
+    function declencherGameOver(t) {
+      jeuFige = true;
+      radarZoneTop = CH - 300; // radar sweeps up visually
+      const tv = +t.toFixed(1);
+      annotImpact(tv, '📡 GRILLÉ !', '#e11d48');
+      plotT.push(tv); plotV.push(Math.round(vitesse)); majPlotly();
+      try { jouerSon('urgence', 0.7); } catch(e) {}
+      document.getElementById('flash-fin-jeu').classList.add('flash-boom');
+
+      const scoreVal = Math.round(score);
+      const vmaxVal = Math.round(maxVitesse);
+      let rang = scoreVal >= 6000 ? 'or' : scoreVal >= 3000 ? 'argent' : 'bronze';
+      document.getElementById('pv-score').textContent = scoreVal + ' m';
+      document.getElementById('pv-max-vitesse').textContent = 'VITESSE MAXIMALE : ' + vmaxVal + ' km/h';
+      const btnBadge = document.getElementById('btn-retour-badge');
+      btnBadge.className = `pv-btn pv-btn-badge pv-badge-${rang}`;
+      btnBadge.href = `index.html?badge=radar&rang=${rang}`;
+      btnBadge.innerHTML = rang === 'or' ? '🏆 Retour à l\'accueil (Badge Or)'
+        : rang === 'argent' ? '🥈 Retour à l\'accueil (Badge Argent)' : '🥉 Retour à l\'accueil (Badge Bronze)';
+
+      const entry = ajouterScore(scoreVal, vmaxVal);
+      renderScoreboard(entry);
+      majRecord();
+
+      setTimeout(() => {
+        document.getElementById('modale-pv').classList.add('visible');
+        if (typeof validerModule === 'function') validerModule('radar');
+        try { jouerSon('diplome', 0.7); } catch(e) {}
+        cv.removeEventListener('mousemove', onMouse);
+      }, 1500);
+    }
+
+    function activerMecha() {
+      mechaActif = true;
+      mechaTimer = CFG.mechaDuration;
+      radarState = 0;
+      radarZoneTop = CH + 500;
+      vitesse *= 1.5;
+      flashRed = 0;
+      for (let k = 0; k < 3; k++) spawnExplosion(subX, CH - 110);
+      flotants.push({ x: subX, y: CH - 160, txt: '⭐ MECHA-SUB ACTIVÉ !', life: 2 });
+      try { jouerSon('victoire_module', 0.8); } catch(e) {}
+    }
+
+    function spawnMissile() {
+      missiles.push({ state: 'track', x: Math.min(Math.max(subX, wL[0]+30), wR[0]-30), y: -15, vy: 0, t: 0, lockX: 0, trail: [] });
+      try { jouerSon('pop', 0.3); } catch(e) {}
+    }
+    function spawnTorpille() {
+      const side = Math.random() < 0.5 ? 'L' : 'R';
+      const yy = 130 + Math.random() * Math.max(40, (CH - 110) - 220);
+      torpilles.push({ state: 'warn', side, y: yy, x: side === 'L' ? wL[0] + 6 : wR[0] - 6, t: 0, vx: 0, grazed: false });
+      try { jouerSon('pop', 0.25); } catch(e) {}
+    }
 
     /* ════════════════════════════════════════════════
        BOUCLE PRINCIPALE
@@ -815,116 +947,240 @@
 
       if (!jeuFige) {
         frames++;
-        vitesse = Math.min(SPEED_WIN + 5, vitesse + auto_accel);
+        const t = frames / 60;
+        const effectiveSpeed = mechaActif ? vitesse * CFG.mechaSpeedMult : vitesse;
+        const spd = 2 + effectiveSpeed * 0.08;
+
+        vitesse += CFG.speedAccel;
+        if (effectiveSpeed > maxVitesse) maxVitesse = effectiveSpeed;
+        score += effectiveSpeed * (1000 / 3600 / 60);
+        scrollY = (scrollY + spd) % 120;
         subX += (mouseX - subX) * 0.12;
 
-        const spd = 2 + vitesse * 0.08;   
-        scrollY = (scrollY + spd) % 120;
-
-        // On adapte le taux de spawn à la largeur de l'écran pour que ça ne soit pas trop vide en plein écran 1080p
-        const ratioLargeur = CW / 600;
-        const baseRate = Math.max(12, 85 - Math.floor(vitesse * 0.6));
-        const rate = Math.max(6, Math.floor((baseRate * SPAWN_MULT) / ratioLargeur)); 
-        
-        if (frames % rate === 0) {
-          const lx = wL[0] + 15, rx = wR[0] - 15;
-          obstacles.push({
-            x: lx + Math.random() * (rx - lx),
-            y: -40,
-            r: 18 + Math.random() * 16,
-            type: Math.random() < 0.47 ? 'mine' : 'rock',
-            rot: Math.random() * Math.PI * 2, drot: (Math.random() - 0.5) * 0.02
-          });
-        }
-
-        if (frames % 3 === 0) {
-          bulles.push({
-            x: wL[0] + 8 + Math.random() * (CW - 2 * WALL_W - 16),
-            y: -6, r: 1.5 + Math.random() * 3.5,
-            al: 0.08 + Math.random() * 0.25,
-            v: spd * (0.4 + Math.random() * 0.7)
-          });
-        }
-
-        sillagePoints.unshift({ x: subX, y: CH - 110 });
-        if (sillagePoints.length > 22) sillagePoints.pop();
-
-        const t = frames / 60;
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-          const ob = obstacles[i];
-          ob.y += spd;
-          ob.rot += ob.drot;
-          if (ob.y > CH + 60) { obstacles.splice(i, 1); continue; }
-          const dx = subX - ob.x, dy = (CH - 110) - ob.y;
-          if (Math.sqrt(dx * dx + dy * dy) < ob.r * 0.82 + 15) {
-            const prev = vitesse;
-            vitesse = Math.max(CRASH_MIN, vitesse - CRASH_PENALTY);
-            obstacles.splice(i, 1);
-            flashRed = 14;
-            container.classList.remove('shake-anim');
-            void container.offsetWidth;
-            container.classList.add('shake-anim');
-            try { jouerSon('erreur', 0.5); } catch (e) {}
-            annots.push({
-              x: +t.toFixed(1), y: Math.round(prev),
-              text: '💥 IMPACT', showarrow: true, arrowhead: 2, arrowcolor: '#e11d48',
-              font: { color: '#e11d48', size: 10 },
-              ax: 0, ay: -32, bordercolor: '#e11d48', borderwidth: 1,
-              bgcolor: '#fff', borderpad: 2
-            });
-            break;
+        if (shieldActif) { shieldTimer -= 1 / 60; if (shieldTimer <= 0) shieldActif = false; }
+        if (mechaActif) {
+          mechaTimer -= 1 / 60;
+          if (mechaTimer <= 0) {
+            mechaActif = false;
+            flotants.push({ x: subX, y: CH - 150, txt: 'MECHA OFF', life: 1.2 });
           }
         }
 
+        const subY = CH - 110;
+
+        /* ── Spawns ── */
+        const ratioL = CW / 600;
+        const rate = Math.max(7, Math.floor(Math.max(13, 80 - vitesse * 0.45) / ratioL));
+        if (frames % rate === 0) {
+          const lx = wL[0] + 15, rx = wR[0] - 15;
+          obstacles.push({ x: lx + Math.random() * (rx - lx), y: -40, r: 18 + Math.random() * 16,
+            type: Math.random() < 0.47 ? 'mine' : 'rock', rot: Math.random() * Math.PI * 2, drot: (Math.random() - 0.5) * 0.02, grazed: false });
+        }
+        if (frames >= prochainMissile && missiles.length < 2) {
+          spawnMissile();
+          prochainMissile = frames + Math.max(220, Math.floor(560 - score * 0.018));
+        }
+        if (frames >= prochainTorpille) {
+          spawnTorpille();
+          prochainTorpille = frames + Math.max(260, Math.floor(440 - score * 0.012));
+        }
+        /* Collectibles réguliers (boost / shield) */
+        if (frames % 220 === 0) {
+          const lx = wL[0] + 20, rx = wR[0] - 20;
+          collectibles.push({ x: lx + Math.random() * (rx - lx), y: -30,
+            type: Math.random() < 0.62 ? 'boost' : 'shield', r: 16 });
+        }
+        /* ⭐ Étoile rare (Mecha-Sub) — spawn ~toutes les 15s en moyenne */
+        if (frames > 600 && frames % 120 === 0 && Math.random() < 0.08) {
+          const lx = wL[0] + 30, rx = wR[0] - 30;
+          collectibles.push({ x: lx + Math.random() * (rx - lx), y: -30,
+            type: 'star', r: 22 });
+        }
+        /* Bulles de décor */
+        if (frames % 3 === 0) {
+          bulles.push({ x: wL[0] + 8 + Math.random() * (CW - 2 * WALL_W - 16),
+            y: -6, r: 1.5 + Math.random() * 3.5, al: 0.08 + Math.random() * 0.25, v: spd * (0.4 + Math.random() * 0.7) });
+        }
+
+        sillagePoints.unshift({ x: subX, y: subY });
+        if (sillagePoints.length > 22) sillagePoints.pop();
+
+        /* ── Obstacles (mines / rochers) ── */
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const ob = obstacles[i];
+          ob.y += spd; ob.rot += ob.drot;
+          if (ob.y > CH + 60) { obstacles.splice(i, 1); continue; }
+          const dx = subX - ob.x, dy = subY - ob.y, dist = Math.sqrt(dx * dx + dy * dy);
+          const hitR = ob.r * 0.82 + 15;
+          if (dist < hitR) {
+            /* IMPACT — supprimer AVANT le frôlé (fix du bug) */
+            const wasGrazed = ob.grazed;
+            obstacles.splice(i, 1);
+            if (wasGrazed && !mechaActif && !shieldActif) score -= 150; // annule le frôlé
+            const gameOver = impactObstacle(ob.x, ob.y, t, ob.type === 'mine' ? '💥 MINE' : '💥 ROCHER');
+            if (gameOver) { declencherGameOver(t); break; }
+            break;
+          } else if (!ob.grazed && dist < hitR + 20 && ob.y > subY - 60) {
+            ob.grazed = true; grazeBonus(ob.x, ob.y);
+          }
+        }
+
+        if (jeuFige) { dessiner(); animId = requestAnimationFrame(boucle); return; }
+
+        /* ── Missiles à verrouillage ── */
+        for (let i = missiles.length - 1; i >= 0; i--) {
+          const m = missiles[i]; m.t++;
+          if (m.state === 'track') {
+            m.y += (72 - m.y) * 0.06;
+            m.x += (subX - m.x) * 0.07;
+            m.x = Math.min(Math.max(m.x, wL[0] + 18), wR[0] - 18);
+            if (m.t >= 70) { m.state = 'lock'; m.t = 0; m.lockX = m.x; try { jouerSon('erreur', 0.25); } catch(e) {} }
+          } else if (m.state === 'lock') {
+            if (m.t >= 22) { m.state = 'launch'; m.t = 0; m.vy = 7; try { jouerSon('urgence', 0.4); } catch(e) {} }
+          } else {
+            m.vy += 1.4; m.y += m.vy; m.x = m.lockX;
+            m.trail.unshift({ x: m.x, y: m.y }); if (m.trail.length > 9) m.trail.pop();
+          }
+          const dxm = subX - m.x, dym = subY - m.y, distm = Math.sqrt(dxm * dxm + dym * dym);
+          if (m.state === 'launch' && distm < 38) {
+            missiles.splice(i, 1);
+            const gameOver = impactObstacle(m.x, m.y, t, '🚀 MISSILE');
+            if (gameOver) { declencherGameOver(t); break; }
+            continue;
+          }
+          if (m.y > CH + 50) missiles.splice(i, 1);
+        }
+
+        if (jeuFige) { dessiner(); animId = requestAnimationFrame(boucle); return; }
+
+        /* ── Torpilles horizontales ── */
+        for (let i = torpilles.length - 1; i >= 0; i--) {
+          const tp = torpilles[i]; tp.t++;
+          if (tp.state === 'warn') {
+            if (tp.t >= 34) { tp.state = 'go'; tp.vx = (tp.side === 'L' ? 1 : -1) * (7 + vitesse * 0.02); }
+          } else { tp.x += tp.vx; }
+          const dxt = subX - tp.x, dyt = subY - tp.y, distt = Math.sqrt(dxt * dxt + dyt * dyt);
+          if (tp.state === 'go' && distt < 28) {
+            const wasGrazed = tp.grazed;
+            torpilles.splice(i, 1);
+            if (wasGrazed && !mechaActif && !shieldActif) score -= 150;
+            const gameOver = impactObstacle(tp.x, tp.y, t, '🐟 TORPILLE');
+            if (gameOver) { declencherGameOver(t); break; }
+            continue;
+          } else if (tp.state === 'go' && !tp.grazed && distt < 56) {
+            tp.grazed = true; grazeBonus(tp.x, tp.y);
+          }
+          if (tp.x < wL[0] - 50 || tp.x > wR[0] + 50) torpilles.splice(i, 1);
+        }
+
+        if (jeuFige) { dessiner(); animId = requestAnimationFrame(boucle); return; }
+
+        /* ── Collectibles ── */
+        for (let i = collectibles.length - 1; i >= 0; i--) {
+          const col = collectibles[i]; col.y += spd;
+          if (col.y > CH + 40) { collectibles.splice(i, 1); continue; }
+          const dx = subX - col.x, dy = subY - col.y;
+          if (Math.sqrt(dx * dx + dy * dy) < col.r + 18) {
+            if (col.type === 'boost') {
+              /* Éclair : vitesse + radar repoussé (retour État 0) */
+              vitesse += CFG.boostSpeedGain;
+              radarState = 0;
+              radarZoneTop = CH + 500;
+              score += 500;
+              flotants.push({ x: col.x, y: col.y, txt: '+500 ⚡', life: 1 });
+              try { jouerSon('mini_succes', 0.6); } catch(e) {}
+            } else if (col.type === 'shield') {
+              shieldActif = true; shieldTimer = 5;
+              try { jouerSon('trace', 0.5); } catch(e) {}
+            } else if (col.type === 'star') {
+              activerMecha();
+            }
+            collectibles.splice(i, 1);
+          }
+        }
+
+        /* ── Bulles / particules / sparks / flottants ── */
         for (let i = bulles.length - 1; i >= 0; i--) {
           bulles[i].y += bulles[i].v; bulles[i].al -= 0.006;
           if (bulles[i].y > CH + 10 || bulles[i].al <= 0) bulles.splice(i, 1);
         }
+        for (let i = explosionParts.length - 1; i >= 0; i--) {
+          const p = explosionParts[i];
+          p.x += p.vx; p.y += p.vy; p.life -= 0.04; p.r *= 0.96;
+          if (p.life <= 0) explosionParts.splice(i, 1);
+        }
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          sparks[i].r += 1.6; sparks[i].life -= 0.05;
+          if (sparks[i].life <= 0) sparks.splice(i, 1);
+        }
+        for (let i = flotants.length - 1; i >= 0; i--) {
+          flotants[i].y -= 0.8; flotants[i].life -= 0.018;
+          if (flotants[i].life <= 0) flotants.splice(i, 1);
+        }
 
         if (flashRed > 0) flashRed--;
 
-        if (vitesse >= SPEED_WIN && !victoire) {
-          victoire = true; jeuFige = true;
-          const tv = +t.toFixed(1);
-          annots.push({
-            x: tv, y: Math.round(vitesse),
-            text: '📸 FLASH !', showarrow: true, arrowhead: 2, arrowcolor: '#e11d48',
-            font: { color: '#e11d48', size: 12 },
-            ax: 0, ay: -40, bordercolor: '#e11d48', borderwidth: 2,
-            bgcolor: '#fff', borderpad: 3
-          });
-          plotT.push(tv); plotV.push(Math.round(vitesse));
-          majPlotly();
-          try { jouerSon('victoire_module', 0.6); } catch (e) {}
-          document.getElementById('flash-fin-jeu').classList.add('flash-boom');
-          document.getElementById('pv-vitesse-enregistree').textContent = Math.floor(vitesse) + ' km/h';
-          
-          let btnBadge = document.getElementById('btn-retour-badge');
-          btnBadge.className = `pv-btn pv-btn-badge pv-badge-${RANK}`;
-          btnBadge.href = `index.html?badge=radar&rang=${RANK}`;
-          if(RANK === 'or') btnBadge.innerHTML = '🏆 Retour à l\'accueil (Badge Or)';
-          else if(RANK === 'argent') btnBadge.innerHTML = '🥈 Retour à l\'accueil (Badge Argent)';
-          else btnBadge.innerHTML = '🥉 Retour à l\'accueil (Badge Bronze)';
-
-          setTimeout(() => {
-            document.getElementById('modale-pv').classList.add('visible');
-            if (typeof validerModule === 'function') validerModule('radar');
-            try { jouerSon('diplome', 0.7); } catch (e) {}
-            cv.removeEventListener('mousemove', onMouse);
-          }, 1200);
-        }
-
         const tr = +t.toFixed(1);
-        if (tr - dernierPt >= 0.3) { dernierPt = tr; plotT.push(tr); plotV.push(Math.round(vitesse)); majPlotly(); }
+        if (tr - dernierPt >= 0.3) {
+          dernierPt = tr;
+          plotT.push(tr);
+          plotV.push(Math.round(mechaActif ? vitesse * CFG.mechaSpeedMult : vitesse));
+          majPlotly();
+        }
+      } else {
+        /* Figé : animation du radar qui engloutit */
+        if (radarState >= 1 && radarZoneTop > CH * 0.2) radarZoneTop -= 3;
       }
 
       dessiner();
 
-      const v = Math.floor(vitesse);
-      hudVit.textContent = v;
-      hudVit.style.color = v >= (SPEED_WIN - 20) ? '#e11d48' : v >= (SPEED_WIN - 50) ? '#f59e0b' : 'var(--signal)';
+      if (hudScore) hudScore.textContent = Math.round(score);
+      if (hudVit) {
+        const v = Math.floor(mechaActif ? vitesse * CFG.mechaSpeedMult : vitesse);
+        hudVit.textContent = v + ' km/h';
+        hudVit.style.color = mechaActif ? '#fbbf24' : v >= 150 ? '#e11d48' : v >= 100 ? '#f59e0b' : 'var(--signal)';
+      }
 
       animId = requestAnimationFrame(boucle);
+    }
+
+    function spawnExplosion(x, y) {
+      for (let i = 0; i < 14; i++) {
+        const ang = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
+        explosionParts.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+          r: 4 + Math.random() * 4, life: 1,
+          color: mechaActif ? (Math.random() < 0.5 ? '#fbbf24' : '#fff') : (Math.random() < 0.5 ? '#fbbf24' : '#f87171') });
+      }
+    }
+
+    /* ════════════════════════════════════════════════
+       SCOREBOARD (sessionStorage)
+    ════════════════════════════════════════════════ */
+    function lireScores() { try { return JSON.parse(sessionStorage.getItem('radar_scores') || '[]'); } catch(e) { return []; } }
+    function ajouterScore(s, v) {
+      const a = lireScores(); const entry = { s, v, d: Date.now() };
+      a.push(entry); a.sort((x, y) => y.s - x.s);
+      const top = a.slice(0, 20);
+      try { sessionStorage.setItem('radar_scores', JSON.stringify(top)); } catch(e) {}
+      return entry;
+    }
+    function majRecord() {
+      const a = lireScores();
+      const el = document.getElementById('course-record');
+      if (el) el.textContent = a.length ? ('🏆 Ton record : ' + a[0].s + ' m') : '';
+    }
+    function renderScoreboard(entryCourant) {
+      const a = lireScores(); const host = document.getElementById('pv-scoreboard');
+      if (!host) return;
+      if (!a.length) { host.innerHTML = ''; return; }
+      const best = a[0].s;
+      const rows = a.slice(0, 5).map((e, i) => {
+        const cur = entryCourant && e.s === entryCourant.s && e.d === entryCourant.d;
+        const medaille = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+        return `<tr class="${cur ? 'sb-cur' : ''}"><td>${medaille}</td><td>${e.s} m</td><td>${Math.round(e.v)} km/h</td></tr>`;
+      }).join('');
+      host.innerHTML = `<div class="sb-titre">🏁 Tes meilleures courses <span>record : ${best} m</span></div>
+        <table class="sb-table"><thead><tr><th></th><th>Score</th><th>V. max</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
 
     /* ════════════════════════════════════════════════
@@ -932,16 +1188,21 @@
     ════════════════════════════════════════════════ */
     function dessiner() {
       ctx.clearRect(0, 0, CW, CH);
-
       const bg = ctx.createLinearGradient(0, 0, 0, CH);
       bg.addColorStop(0, '#001c11'); bg.addColorStop(0.55, '#000e08'); bg.addColorStop(1, '#000805');
       ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
 
       if (flashRed > 0) { ctx.fillStyle = `rgba(225,29,72,${flashRed / 14 * 0.42})`; ctx.fillRect(0, 0, CW, CH); }
 
+      /* Mecha ambient glow */
+      if (mechaActif) {
+        const pulse = 0.3 + 0.2 * Math.sin(frames * 0.15);
+        ctx.fillStyle = `rgba(251,191,36,${pulse * 0.08})`;
+        ctx.fillRect(0, 0, CW, CH);
+      }
+
       dessinerParois();
 
-      const spd = 2 + vitesse * 0.08;
       ctx.strokeStyle = 'rgba(14,159,110,0.055)'; ctx.lineWidth = 1;
       for (let y = (scrollY % 120) - 120; y < CH + 120; y += 120) {
         ctx.beginPath(); ctx.moveTo(wL[0], y); ctx.lineTo(wR[0], y); ctx.stroke();
@@ -953,20 +1214,226 @@
       });
 
       sillagePoints.forEach((s, i) => {
-        const a = (1 - i / sillagePoints.length) * 0.65;
-        ctx.globalAlpha = a; ctx.fillStyle = '#34d399';
-        const r = Math.max(0.8, 6 - i * 0.25);
-        ctx.beginPath(); ctx.arc(s.x, s.y + i * 5, r, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = (1 - i / sillagePoints.length) * 0.65;
+        ctx.fillStyle = mechaActif ? '#fbbf24' : '#34d399';
+        ctx.beginPath(); ctx.arc(s.x, s.y + i * 5, Math.max(0.8, 6 - i * 0.25), 0, Math.PI * 2); ctx.fill();
       });
       ctx.globalAlpha = 1;
 
+      collectibles.forEach(c => dessinerCollectible(c));
       obstacles.forEach(ob => ob.type === 'mine' ? dessinerMine(ob) : dessinerRocher(ob));
+      torpilles.forEach(tp => dessinerTorpille(tp));
+      missiles.forEach(m => dessinerMissile(m));
+
+      explosionParts.forEach(p => {
+        ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      sparks.forEach(s => {
+        ctx.globalAlpha = Math.max(0, s.life); ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      flotants.forEach(f => {
+        ctx.globalAlpha = Math.max(0, f.life); ctx.fillStyle = '#fde68a';
+        ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(f.txt, f.x, f.y); ctx.textAlign = 'left';
+      });
+      ctx.globalAlpha = 1;
+
       dessinerSousMarin();
+      dessinerRadarZone();
+
+      /* HUD Mecha timer bar */
+      if (mechaActif) {
+        const barW = 200, barH = 10;
+        const bx = (CW - barW) / 2, by = 14;
+        const pct = Math.max(0, mechaTimer / CFG.mechaDuration);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
+        const barGrad = ctx.createLinearGradient(bx, 0, bx + barW * pct, 0);
+        barGrad.addColorStop(0, '#fbbf24'); barGrad.addColorStop(1, '#f59e0b');
+        ctx.fillStyle = barGrad;
+        ctx.fillRect(bx, by, barW * pct, barH);
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, barW, barH);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('⭐ MECHA-SUB ⭐', CW / 2, by + barH + 16);
+        ctx.textAlign = 'left';
+      }
+
+      /* HUD Strike indicator */
+      if (radarState === 1 && !mechaActif) {
+        const pulse = 0.6 + 0.4 * Math.sin(frames * 0.2);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = '#e11d48';
+        ctx.font = `bold ${Math.max(14, Math.floor(CW * 0.022))}px monospace`;
+        ctx.textAlign = 'left';
+        ctx.fillText('⚠️ STRIKE 1/2 — PROCHAIN IMPACT = GAME OVER', 15, 40);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function dessinerRadarZone() {
+      if (radarState === 0) return; // caché
+      const zoneH = CH - radarZoneTop;
+      if (zoneH <= 0) return;
+      const grad = ctx.createLinearGradient(0, radarZoneTop, 0, CH);
+      grad.addColorStop(0, 'rgba(225,29,72,0.0)');
+      grad.addColorStop(0.12, 'rgba(225,29,72,0.22)');
+      grad.addColorStop(1, 'rgba(225,29,72,0.6)');
+      ctx.fillStyle = grad; ctx.fillRect(0, radarZoneTop, CW, zoneH);
+
+      const pulse = 0.5 + 0.5 * Math.sin(frames * 0.12);
+      ctx.strokeStyle = `rgba(225,29,72,${0.55 + pulse * 0.45})`; ctx.lineWidth = 3;
+      ctx.setLineDash([8, 5]);
+      ctx.beginPath(); ctx.moveTo(wL[0], radarZoneTop); ctx.lineTo(wR[0], radarZoneTop); ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.globalAlpha = 0.4 + pulse * 0.35; ctx.fillStyle = '#ff4d6d';
+      ctx.font = `bold ${Math.max(14, Math.floor(CW * 0.026))}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText('▲ RADAR ACTIVÉ — DERNIER AVERTISSEMENT ▲', CW / 2, radarZoneTop + 24);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    }
+
+    /* ── MISSILE : rendu AGRANDI (×2.2) et effrayant ── */
+    function dessinerMissile(m) {
+      const subY = CH - 110;
+      const SCALE = 2.2;
+      if (m.state === 'track' || m.state === 'lock') {
+        const aimX = m.state === 'lock' ? m.lockX : m.x;
+        const flash = m.state === 'lock' ? (frames % 10 < 5) : true;
+        ctx.save();
+        ctx.globalAlpha = m.state === 'lock' ? (flash ? 0.85 : 0.3) : 0.4;
+        ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = m.state === 'lock' ? 4 : 2;
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath(); ctx.moveTo(aimX, m.y + 14 * SCALE); ctx.lineTo(aimX, CH); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = m.state === 'lock' && flash ? 0.9 : 0.5;
+        ctx.beginPath(); ctx.arc(aimX, subY, 30, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      } else {
+        /* traînée de flamme agrandie */
+        m.trail.forEach((p, i) => {
+          ctx.globalAlpha = (1 - i / m.trail.length) * 0.6;
+          ctx.fillStyle = i % 2 ? '#fbbf24' : '#f87171';
+          ctx.beginPath(); ctx.arc(p.x, p.y - 14 * SCALE, Math.max(1, 11 - i), 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+      /* corps du missile — AGRANDI */
+      ctx.save(); ctx.translate(m.x, m.y); ctx.scale(SCALE, SCALE);
+      ctx.shadowColor = '#e11d48'; ctx.shadowBlur = 20; ctx.fillStyle = '#d1d5db';
+      ctx.beginPath();
+      ctx.moveTo(0, 16); ctx.lineTo(-7, -2); ctx.lineTo(-7, -14); ctx.lineTo(7, -14); ctx.lineTo(7, -2); ctx.closePath();
+      ctx.fill(); ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(0, -4, 4, 0, Math.PI * 2); ctx.fill();
+      /* ailerons agrandis */
+      ctx.fillStyle = '#9ca3af';
+      ctx.beginPath(); ctx.moveTo(-7, -14); ctx.lineTo(-14, -22); ctx.lineTo(-7, -8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(7, -14); ctx.lineTo(14, -22); ctx.lineTo(7, -8); ctx.closePath(); ctx.fill();
+      /* flamme arrière */
+      const flicker = Math.sin(frames * 0.5) * 3;
+      ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.moveTo(-5, 16); ctx.lineTo(0, 26 + flicker); ctx.lineTo(5, 16); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(-3, 16); ctx.lineTo(0, 22 + flicker * 0.5); ctx.lineTo(3, 16); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore(); ctx.shadowBlur = 0;
+    }
+
+    function dessinerTorpille(tp) {
+      if (tp.state === 'warn') {
+        const onWall = tp.side === 'L' ? wL[0] + 14 : wR[0] - 14;
+        const flash = frames % 12 < 6;
+        ctx.save(); ctx.globalAlpha = flash ? 0.95 : 0.35;
+        ctx.fillStyle = '#ff4d6d'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(tp.side === 'L' ? '▶' : '◀', onWall, tp.y);
+        ctx.restore();
+        return;
+      }
+      ctx.save(); ctx.translate(tp.x, tp.y); if (tp.vx < 0) ctx.scale(-1, 1);
+      ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 10; ctx.fillStyle = '#374151';
+      ctx.beginPath(); ctx.ellipse(0, 0, 16, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#f87171'; ctx.beginPath(); ctx.arc(13, 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.6; ctx.fillStyle = '#fbbf24';
+      ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-28, -5); ctx.lineTo(-24, 0); ctx.lineTo(-28, 5); ctx.closePath(); ctx.fill();
+      ctx.restore(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+
+    /* ── COLLECTIBLES : Éclairs AGRANDIS + Étoile rare ── */
+    function dessinerCollectible(col) {
+      ctx.save(); ctx.translate(col.x, col.y);
+      if (col.type === 'boost') {
+        /* Éclair ×2 + halo pulsant */
+        const S = 2.0;
+        ctx.scale(S, S);
+        ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 28; ctx.fillStyle = '#fde68a';
+        ctx.beginPath();
+        ctx.moveTo(6,-14); ctx.lineTo(-2,-2); ctx.lineTo(4,-2);
+        ctx.lineTo(-6,14); ctx.lineTo(2,2); ctx.lineTo(-4,2); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.globalAlpha = 0.3 + 0.2 * Math.sin(frames * 0.15);
+        ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+      } else if (col.type === 'shield') {
+        ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 22;
+        const g = ctx.createRadialGradient(0, 0, 4, 0, 0, col.r);
+        g.addColorStop(0, 'rgba(147,197,253,0.9)'); g.addColorStop(1, 'rgba(37,99,235,0.6)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, col.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('🛡', 0, 1);
+      } else if (col.type === 'star') {
+        /* ⭐ Cristal brillant / étoile prismatique */
+        const anim = frames * 0.06;
+        const pulse = 1.0 + 0.15 * Math.sin(anim * 3);
+        ctx.rotate(anim * 0.5);
+        /* Halo extérieur */
+        ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 40;
+        ctx.globalAlpha = 0.3 + 0.2 * Math.sin(anim * 2);
+        ctx.beginPath(); ctx.arc(0, 0, col.r + 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(251,191,36,0.15)'; ctx.fill();
+        ctx.globalAlpha = 1;
+        /* Forme étoile à 6 branches */
+        const spikes = 6, outerR = col.r * pulse, innerR = col.r * 0.45 * pulse;
+        ctx.beginPath();
+        for (let s = 0; s < spikes * 2; s++) {
+          const r = s % 2 === 0 ? outerR : innerR;
+          const a = (s * Math.PI) / spikes - Math.PI / 2;
+          if (s === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        const starGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, outerR);
+        starGrad.addColorStop(0, '#fff');
+        starGrad.addColorStop(0.3, '#fef08a');
+        starGrad.addColorStop(0.7, '#fbbf24');
+        starGrad.addColorStop(1, '#d97706');
+        ctx.fillStyle = starGrad; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        /* Centre brillant */
+        ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+        /* Rayons */
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+        for (let rr = 0; rr < 4; rr++) {
+          const a = anim + rr * Math.PI / 2;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6);
+          ctx.lineTo(Math.cos(a) * (outerR + 6), Math.sin(a) * (outerR + 6));
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
     }
 
     function dessinerParois() {
       const segH = CH / N_WALL_SEGS;
-
       ctx.beginPath(); ctx.moveTo(0, 0);
       for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wL[i % (N_WALL_SEGS + 1)], i * segH);
       ctx.lineTo(0, CH); ctx.closePath();
@@ -976,7 +1443,6 @@
       ctx.beginPath();
       for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wL[i % (N_WALL_SEGS + 1)], i * segH);
       ctx.strokeStyle = 'rgba(14,159,110,0.6)'; ctx.lineWidth = 2.5; ctx.stroke();
-
       ctx.beginPath(); ctx.moveTo(CW, 0);
       for (let i = 0; i <= N_WALL_SEGS; i++) ctx.lineTo(wR[i % (N_WALL_SEGS + 1)], i * segH);
       ctx.lineTo(CW, CH); ctx.closePath();
@@ -989,96 +1455,165 @@
     }
 
     function dessinerRocher(ob) {
-      ctx.save();
-      ctx.translate(ob.x, ob.y); ctx.rotate(ob.rot);
+      ctx.save(); ctx.translate(ob.x, ob.y); ctx.rotate(ob.rot);
       ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 15;
-      const g = ctx.createRadialGradient(-ob.r * 0.22, -ob.r * 0.28, ob.r * 0.04, 0, 0, ob.r);
+      const g = ctx.createRadialGradient(-ob.r*0.22, -ob.r*0.28, ob.r*0.04, 0, 0, ob.r);
       g.addColorStop(0, '#8a6038'); g.addColorStop(0.55, '#4e3018'); g.addColorStop(1, '#1c1008');
-      ctx.fillStyle = g;
-      ctx.beginPath();
+      ctx.fillStyle = g; ctx.beginPath();
       const pts = [[0,-1],[0.75,-0.44],[0.9,0.25],[0.42,0.98],[-0.3,0.92],[-0.88,0.2],[-0.92,-0.38],[-0.44,-0.86]];
-      ctx.moveTo(pts[0][0] * ob.r, pts[0][1] * ob.r);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * ob.r, pts[i][1] * ob.r);
+      ctx.moveTo(pts[0][0]*ob.r, pts[0][1]*ob.r);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0]*ob.r, pts[i][1]*ob.r);
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = 'rgba(140,96,42,0.55)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.globalAlpha = 0.28; ctx.fillStyle = '#e8b870'; ctx.beginPath();
-      ctx.moveTo(-ob.r*0.18, -ob.r*0.62); ctx.lineTo(ob.r*0.08, -ob.r*0.34);
-      ctx.lineTo(-ob.r*0.06, -ob.r*0.22); ctx.lineTo(-ob.r*0.28, -ob.r*0.5);
+      ctx.moveTo(-ob.r*0.18,-ob.r*0.62); ctx.lineTo(ob.r*0.08,-ob.r*0.34);
+      ctx.lineTo(-ob.r*0.06,-ob.r*0.22); ctx.lineTo(-ob.r*0.28,-ob.r*0.5);
       ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
     }
 
     function dessinerMine(ob) {
       ctx.save(); ctx.translate(ob.x, ob.y);
       ctx.shadowColor = '#e11d48'; ctx.shadowBlur = 22;
-      const g = ctx.createRadialGradient(-ob.r*0.25, -ob.r*0.25, ob.r*0.04, 0, 0, ob.r * 0.8);
+      const g = ctx.createRadialGradient(-ob.r*0.25,-ob.r*0.25,ob.r*0.04,0,0,ob.r*0.8);
       g.addColorStop(0, '#a80a30'); g.addColorStop(1, '#2d0508');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, ob.r * 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0,0,ob.r*0.8,0,Math.PI*2); ctx.fill();
       ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 3;
+      ctx.lineWidth = 3;
       for (let a = 0; a < 8; a++) {
-        const ang = a * Math.PI / 4; ctx.beginPath();
-        ctx.moveTo(Math.cos(ang) * ob.r * 0.8, Math.sin(ang) * ob.r * 0.8);
-        ctx.lineTo(Math.cos(ang) * ob.r * 1.18, Math.sin(ang) * ob.r * 1.18); ctx.stroke();
+        const ang = a*Math.PI/4; ctx.beginPath();
+        ctx.moveTo(Math.cos(ang)*ob.r*0.8, Math.sin(ang)*ob.r*0.8);
+        ctx.lineTo(Math.cos(ang)*ob.r*1.18, Math.sin(ang)*ob.r*1.18); ctx.stroke();
       }
       if (frames % 38 < 19) {
         ctx.fillStyle = '#ff4d6d'; ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0,0,4.5,0,Math.PI*2); ctx.fill();
       }
       ctx.restore();
     }
 
+    /* ── SOUS-MARIN : Normal + MECHA-SUB doré ── */
     function dessinerSousMarin() {
       const sy = CH - 110;
       ctx.save(); ctx.translate(subX, sy);
 
-      const wLen = 22 + vitesse * 0.42;
-      const wAlpha = Math.min(0.9, vitesse / 85);
-      if (wAlpha > 0.05) {
-        ctx.globalAlpha = wAlpha;
-        for (const sx of [-7, 7]) {
-          const wg = ctx.createLinearGradient(sx, SUB_H / 2, sx, SUB_H / 2 + wLen);
-          wg.addColorStop(0, 'rgba(126,255,197,0.9)'); wg.addColorStop(0.5, 'rgba(14,159,110,0.4)'); wg.addColorStop(1, 'rgba(14,159,110,0)');
-          ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx - 5, SUB_H / 2);
-          ctx.quadraticCurveTo(sx - 8, SUB_H / 2 + wLen * 0.45, sx - 3, SUB_H / 2 + wLen);
-          ctx.quadraticCurveTo(sx + 3, SUB_H / 2 + wLen, sx + 8, SUB_H / 2 + wLen * 0.45);
-          ctx.quadraticCurveTo(sx + 5, SUB_H / 2, sx, SUB_H / 2); ctx.closePath(); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-      }
-
-      if (vitesse > 55) {
-        const ga = Math.min(0.45, (vitesse - 55) / 75);
-        ctx.globalAlpha = ga; ctx.shadowColor = '#0e9f6e'; ctx.shadowBlur = 35; ctx.fillStyle = 'rgba(14,159,110,0.1)';
-        ctx.beginPath(); ctx.ellipse(0, 2, SUB_W / 2 + 16, SUB_H / 2 + 16, 0, 0, Math.PI * 2); ctx.fill();
+      if (mechaActif) {
+        /* ═══ MECHA-SUB MODE ═══ */
+        /* Aura de feu */
+        const auraP = 0.6 + 0.3 * Math.sin(frames * 0.2);
+        ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 60;
+        ctx.globalAlpha = auraP * 0.4;
+        ctx.fillStyle = 'rgba(251,191,36,0.2)';
+        ctx.beginPath(); ctx.ellipse(0, 0, SUB_W + 30, SUB_H + 20, 0, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-      }
 
-      const hg = ctx.createLinearGradient(-SUB_W / 2, 0, SUB_W / 2, 0);
-      hg.addColorStop(0, '#054f39'); hg.addColorStop(0.35, '#10b981'); hg.addColorStop(0.65, '#10b981'); hg.addColorStop(1, '#054f39');
-      ctx.fillStyle = hg; ctx.shadowColor = 'rgba(16,185,129,0.5)'; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.moveTo(0, -SUB_H / 2);
-      ctx.bezierCurveTo( SUB_W * 0.72, -SUB_H * 0.18,  SUB_W / 2, SUB_H * 0.16, SUB_W / 2, SUB_H * 0.32);
-      ctx.bezierCurveTo( SUB_W / 2, SUB_H * 0.46,  SUB_W * 0.3, SUB_H / 2, 0, SUB_H / 2);
-      ctx.bezierCurveTo(-SUB_W * 0.3, SUB_H / 2, -SUB_W / 2, SUB_H * 0.46, -SUB_W / 2, SUB_H * 0.32);
-      ctx.bezierCurveTo(-SUB_W / 2, SUB_H * 0.16, -SUB_W * 0.72, -SUB_H * 0.18, 0, -SUB_H / 2);
-      ctx.fill(); ctx.strokeStyle = '#34d399'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.shadowBlur = 0;
+        /* Propulseurs énormes */
+        const wLen = 50 + vitesse * 0.6;
+        for (const sx of [-10, 0, 10]) {
+          const wg = ctx.createLinearGradient(sx, SUB_H/2, sx, SUB_H/2+wLen);
+          wg.addColorStop(0,'rgba(251,191,36,0.95)'); wg.addColorStop(0.3,'rgba(245,158,11,0.7)');
+          wg.addColorStop(0.7,'rgba(225,29,72,0.3)'); wg.addColorStop(1,'rgba(225,29,72,0)');
+          ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx-6, SUB_H/2);
+          ctx.quadraticCurveTo(sx-10, SUB_H/2+wLen*0.5, sx-3, SUB_H/2+wLen);
+          ctx.quadraticCurveTo(sx+3, SUB_H/2+wLen, sx+10, SUB_H/2+wLen*0.5);
+          ctx.quadraticCurveTo(sx+6, SUB_H/2, sx, SUB_H/2); ctx.closePath(); ctx.fill();
+        }
 
-      ctx.fillStyle = '#054f39'; ctx.strokeStyle = '#34d399'; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.ellipse(0, -SUB_H * 0.07, 6, 13, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        /* Coque dorée */
+        const hg = ctx.createLinearGradient(-SUB_W/2,0,SUB_W/2,0);
+        hg.addColorStop(0,'#b45309'); hg.addColorStop(0.25,'#fbbf24');
+        hg.addColorStop(0.5,'#fff'); hg.addColorStop(0.75,'#fbbf24'); hg.addColorStop(1,'#b45309');
+        ctx.fillStyle = hg; ctx.shadowColor = 'rgba(251,191,36,0.8)'; ctx.shadowBlur = 25;
+        ctx.beginPath(); ctx.moveTo(0,-SUB_H/2);
+        ctx.bezierCurveTo(SUB_W*0.72,-SUB_H*0.18,SUB_W/2,SUB_H*0.16,SUB_W/2,SUB_H*0.32);
+        ctx.bezierCurveTo(SUB_W/2,SUB_H*0.46,SUB_W*0.3,SUB_H/2,0,SUB_H/2);
+        ctx.bezierCurveTo(-SUB_W*0.3,SUB_H/2,-SUB_W/2,SUB_H*0.46,-SUB_W/2,SUB_H*0.32);
+        ctx.bezierCurveTo(-SUB_W/2,SUB_H*0.16,-SUB_W*0.72,-SUB_H*0.18,0,-SUB_H/2);
+        ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0;
 
-      ctx.fillStyle = '#0b6b4c';
-      for (const dir of [-1, 1]) {
-        ctx.beginPath(); ctx.moveTo(dir * SUB_W / 2, 2); ctx.lineTo(dir * (SUB_W / 2 + 12), 10);
-        ctx.lineTo(dir * (SUB_W / 2 + 9), 20); ctx.lineTo(dir * SUB_W / 2, 16); ctx.closePath(); ctx.fill();
-      }
+        /* Hublot */
+        ctx.fillStyle = '#b45309'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(0,-SUB_H*0.07,6,13,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
 
-      ctx.fillStyle = '#7effc5'; ctx.shadowColor = '#7effc5'; ctx.shadowBlur = 8;
-      ctx.beginPath(); ctx.arc(0, -SUB_H * 0.07, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+        /* Ailerons agrandis */
+        ctx.fillStyle = '#d97706';
+        for (const dir of [-1,1]) {
+          ctx.beginPath(); ctx.moveTo(dir*SUB_W/2,2); ctx.lineTo(dir*(SUB_W/2+16),8);
+          ctx.lineTo(dir*(SUB_W/2+13),22); ctx.lineTo(dir*SUB_W/2,16); ctx.closePath(); ctx.fill();
+        }
 
-      const pa = frames * 0.32; ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2.5;
-      for (let b = 0; b < 3; b++) {
-        const a = pa + b * Math.PI * 2 / 3; ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * 3, SUB_H / 2 - 4 + Math.sin(a) * 3); ctx.lineTo(Math.cos(a) * 10, SUB_H / 2 - 4 + Math.sin(a) * 10); ctx.stroke();
+        /* Cœur lumineux */
+        ctx.fillStyle = '#fff'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(0,-SUB_H*0.07,5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+
+        /* Anneau d'énergie rotatif */
+        const ea = frames * 0.15;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, SUB_W + 8, ea, ea + Math.PI * 0.7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, SUB_W + 8, ea + Math.PI, ea + Math.PI * 1.7); ctx.stroke();
+
+        /* Hélice dorée */
+        const pa = frames * 0.4;
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+        for (let b=0;b<3;b++) {
+          const a=pa+b*Math.PI*2/3;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a)*4,SUB_H/2-4+Math.sin(a)*4);
+          ctx.lineTo(Math.cos(a)*14,SUB_H/2-4+Math.sin(a)*14); ctx.stroke();
+        }
+      } else {
+        /* ═══ SOUS-MARIN NORMAL ═══ */
+        if (shieldActif) {
+          const ha = 0.5 + 0.3 * Math.sin(frames * 0.3);
+          ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 40;
+          ctx.globalAlpha = ha; ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(0, 0, SUB_W + 14, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = ha * 0.35;
+          ctx.beginPath(); ctx.arc(0, 0, SUB_W + 26, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
+        const wLen = 22 + vitesse * 0.42, wAlpha = Math.min(0.9, vitesse / 85);
+        if (wAlpha > 0.05) {
+          ctx.globalAlpha = wAlpha;
+          for (const sx of [-7, 7]) {
+            const wg = ctx.createLinearGradient(sx, SUB_H/2, sx, SUB_H/2+wLen);
+            wg.addColorStop(0,'rgba(126,255,197,0.9)'); wg.addColorStop(0.5,'rgba(14,159,110,0.4)'); wg.addColorStop(1,'rgba(14,159,110,0)');
+            ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx-5, SUB_H/2);
+            ctx.quadraticCurveTo(sx-8, SUB_H/2+wLen*0.45, sx-3, SUB_H/2+wLen);
+            ctx.quadraticCurveTo(sx+3, SUB_H/2+wLen, sx+8, SUB_H/2+wLen*0.45);
+            ctx.quadraticCurveTo(sx+5, SUB_H/2, sx, SUB_H/2); ctx.closePath(); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        }
+        if (vitesse > 55) {
+          ctx.globalAlpha = Math.min(0.45,(vitesse-55)/75);
+          ctx.shadowColor='#0e9f6e'; ctx.shadowBlur=35; ctx.fillStyle='rgba(14,159,110,0.1)';
+          ctx.beginPath(); ctx.ellipse(0,2,SUB_W/2+16,SUB_H/2+16,0,0,Math.PI*2); ctx.fill();
+          ctx.globalAlpha=1; ctx.shadowBlur=0;
+        }
+        const hg = ctx.createLinearGradient(-SUB_W/2,0,SUB_W/2,0);
+        hg.addColorStop(0,'#054f39'); hg.addColorStop(0.35,'#10b981'); hg.addColorStop(0.65,'#10b981'); hg.addColorStop(1,'#054f39');
+        ctx.fillStyle=hg; ctx.shadowColor='rgba(16,185,129,0.5)'; ctx.shadowBlur=12;
+        ctx.beginPath(); ctx.moveTo(0,-SUB_H/2);
+        ctx.bezierCurveTo(SUB_W*0.72,-SUB_H*0.18,SUB_W/2,SUB_H*0.16,SUB_W/2,SUB_H*0.32);
+        ctx.bezierCurveTo(SUB_W/2,SUB_H*0.46,SUB_W*0.3,SUB_H/2,0,SUB_H/2);
+        ctx.bezierCurveTo(-SUB_W*0.3,SUB_H/2,-SUB_W/2,SUB_H*0.46,-SUB_W/2,SUB_H*0.32);
+        ctx.bezierCurveTo(-SUB_W/2,SUB_H*0.16,-SUB_W*0.72,-SUB_H*0.18,0,-SUB_H/2);
+        ctx.fill(); ctx.strokeStyle='#34d399'; ctx.lineWidth=1.5; ctx.stroke(); ctx.shadowBlur=0;
+        ctx.fillStyle='#054f39'; ctx.strokeStyle='#34d399'; ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.ellipse(0,-SUB_H*0.07,6,13,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle='#0b6b4c';
+        for (const dir of [-1,1]) {
+          ctx.beginPath(); ctx.moveTo(dir*SUB_W/2,2); ctx.lineTo(dir*(SUB_W/2+12),10);
+          ctx.lineTo(dir*(SUB_W/2+9),20); ctx.lineTo(dir*SUB_W/2,16); ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle='#7effc5'; ctx.shadowColor='#7effc5'; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(0,-SUB_H*0.07,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+        const pa=frames*0.32; ctx.strokeStyle='#34d399'; ctx.lineWidth=2.5;
+        for (let b=0;b<3;b++) {
+          const a=pa+b*Math.PI*2/3; ctx.beginPath();
+          ctx.moveTo(Math.cos(a)*3,SUB_H/2-4+Math.sin(a)*3);
+          ctx.lineTo(Math.cos(a)*10,SUB_H/2-4+Math.sin(a)*10); ctx.stroke();
+        }
       }
       ctx.restore();
     }
@@ -1086,24 +1621,24 @@
     /* ── Plotly ── */
     const PLOTLY_LAYOUT = () => ({
       paper_bgcolor: 'transparent', plot_bgcolor: '#f9fdfb', margin: { t: 18, r: 18, b: 45, l: 58 },
-      xaxis: { title: 'Temps (s)' }, yaxis: { title: 'Vitesse (km/h)', range: [0, SPEED_WIN + 25] },
-      shapes: [{ type: 'line', x0: 0, x1: 1, xref: 'paper', y0: SPEED_WIN, y1: SPEED_WIN, yref: 'y', line: { color: '#e11d48', width: 2, dash: 'dash' } }]
+      xaxis: { title: 'Temps (s)' }, yaxis: { title: 'Vitesse (km/h)', range: [0, 280] }
     });
-    const PLOTLY_TRACE = () => ({ x: plotT, y: plotV, type: 'scatter', fill: 'tozeroy', fillcolor: 'rgba(14,159,110,0.08)', line: { color: '#0e9f6e', width: 3, shape: 'spline' }, marker: { size: 4, color: '#0e9f6e' } });
-    const baseAnnot = () => ({ x: 1, xref: 'paper', y: SPEED_WIN, yref: 'y', text: `📸 ${SPEED_WIN} km/h`, showarrow: false, font: { color: '#e11d48', size: 11 }, xanchor: 'right', yanchor: 'bottom' });
-
+    const PLOTLY_TRACE = () => ({
+      x: plotT, y: plotV, type: 'scatter', fill: 'tozeroy', fillcolor: 'rgba(14,159,110,0.08)',
+      line: { color: '#0e9f6e', width: 3, shape: 'spline' }, marker: { size: 4, color: '#0e9f6e' }
+    });
     function initPlotly() {
       if (typeof Plotly === 'undefined') return;
-      try { Plotly.newPlot('graphe-vitesse', [PLOTLY_TRACE()], { ...PLOTLY_LAYOUT(), annotations: [baseAnnot()] }, { responsive: true, displayModeBar: false }); plotInit = true; } catch (e) {}
+      try { Plotly.newPlot('graphe-vitesse', [PLOTLY_TRACE()], PLOTLY_LAYOUT(), { responsive: true, displayModeBar: false }); plotInit = true; } catch(e) {}
     }
     function majPlotly() {
       if (!plotInit) return;
-      try { Plotly.react('graphe-vitesse', [PLOTLY_TRACE()], { ...PLOTLY_LAYOUT(), annotations: [baseAnnot(), ...annots] }); } catch (e) {}
+      try { Plotly.react('graphe-vitesse', [PLOTLY_TRACE()], { ...PLOTLY_LAYOUT(), annotations: annots }); } catch(e) {}
     }
 
     if (document.getElementById('phase-radar').style.display === 'block') initPhase2();
 
-  }()); 
+  }());
   </script>
 </body>
 </html>
