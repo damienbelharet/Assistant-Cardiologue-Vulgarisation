@@ -388,13 +388,19 @@
             <div id="course-overlay">
               <h3>⚡ ENDLESS RUNNER</h3>
               <p>
-                <strong>🖱️ SOURIS :</strong> Pilote le sous-marin gauche/droite.<br><br>
+                <strong>🖱️ SOURIS</strong> ou <strong>⌨️ FLÈCHES</strong> (← →) : Pilote le sous-marin gauche/droite.<br><br>
                 💀 <strong style="color:#e11d48;">TWO-STRIKE SYSTEM :</strong> 1er impact = le radar apparaît. 2ème impact = <strong>GAME OVER</strong> !<br>
                 🚀 <strong style="color:#e11d48;">Missiles</strong> : ils te visent puis se verrouillent — esquive ! Ils sont ÉNORMES.<br>
                 🐟 <strong style="color:#f59e0b;">Torpilles</strong> : elles fusent des parois. &nbsp; ✨ Frôle un obstacle = bonus de points !<br>
                 ⚡ <strong style="color:#fbbf24;">Éclairs</strong> = vitesse + radar repoussé (retour à 0 strike). &nbsp; 🛡️ <strong style="color:#60a5fa;">Boucliers</strong> = immunité 5 s.<br>
                 ⭐ <strong style="color:#fbbf24;">Étoile (rare)</strong> = Transformation <strong>MECHA-SUB</strong> : 8 s d'invulnérabilité totale + destruction !
               </p>
+              <div class="diff-titre" style="color:var(--signal); margin-top:14px;">🎚️ Sensibilité du pilotage</div>
+              <div class="course-diff-boutons" id="sens-boutons">
+                <button class="course-diff-btn sens-btn" data-sens="faible">Faible</button>
+                <button class="course-diff-btn sens-btn actif" data-sens="normale">Normale</button>
+                <button class="course-diff-btn sens-btn" data-sens="elevee">Élevée</button>
+              </div>
               <div id="course-record" style="color:#fbbf24; font-weight:bold; margin:10px 0 4px; min-height:1.1em;"></div>
               <button class="pp-btn btn-suivant" id="btn-start-course">🚀 JOUER EN PLEIN ÉCRAN</button>
               <div style="font-size:0.78rem; color:#7f9c8f; margin-top:8px;">Astuce : touche <strong>R</strong> pour recommencer.</div>
@@ -726,6 +732,11 @@
     let cv, ctx, animId;
     let jeuEnCours = false, jeuFige = false;
     let subX = CW / 2, mouseX = CW / 2;
+    /* ── Pilotage clavier + sensibilité ── */
+    let keyLeft = false, keyRight = false;
+    const SENS_PRESETS = { faible: { lerp: 0.08, key: 6 }, normale: { lerp: 0.14, key: 9 }, elevee: { lerp: 0.22, key: 15 } };
+    let sensChoisie = 'normale';
+    let lerpSubX = SENS_PRESETS.normale.lerp, keyStep = SENS_PRESETS.normale.key;
     let vitesse, frames, scrollY, flashRed;
     let score, maxVitesse, radarZoneTop;
     let radarState; // 0 = hidden, 1 = alert (1st strike), 2 = game over
@@ -797,6 +808,9 @@
       shieldActif = false; shieldTimer = 0;
       mechaActif = false; mechaTimer = 0;
       subX = CW / 2; mouseX = CW / 2;
+      keyLeft = false; keyRight = false;
+      lerpSubX = SENS_PRESETS[sensChoisie].lerp;
+      keyStep  = SENS_PRESETS[sensChoisie].key;
       obstacles = []; collectibles = []; explosionParts = []; bulles = []; sillagePoints = [];
       missiles = []; torpilles = []; sparks = []; flotants = [];
       prochainMissile = 600; prochainTorpille = 900;
@@ -828,6 +842,29 @@
           document.getElementById('course-overlay').style.display === 'none') {
         lancerCourse();
       }
+    });
+
+    /* ── Sensibilité : boutons de l'écran de départ ── */
+    document.querySelectorAll('#sens-boutons .sens-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        document.querySelectorAll('#sens-boutons .sens-btn').forEach(b => b.classList.remove('actif'));
+        btn.classList.add('actif');
+        sensChoisie = btn.dataset.sens;
+      });
+    });
+
+    /* ── Pilotage clavier : flèches + Q/D (AZERTY) + A/D (QWERTY) ── */
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('phase-radar').style.display !== 'block') return;
+      const k = e.key;
+      if (k === 'ArrowLeft' || k === 'q' || k === 'Q' || k === 'a' || k === 'A') { keyLeft = true; e.preventDefault(); }
+      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keyRight = true; e.preventDefault(); }
+    });
+    document.addEventListener('keyup', (e) => {
+      const k = e.key;
+      if (k === 'ArrowLeft' || k === 'q' || k === 'Q' || k === 'a' || k === 'A') keyLeft = false;
+      else if (k === 'ArrowRight' || k === 'd' || k === 'D') keyRight = false;
     });
 
     /* ── Helpers effets ── */
@@ -955,7 +992,10 @@
         if (effectiveSpeed > maxVitesse) maxVitesse = effectiveSpeed;
         score += effectiveSpeed * (1000 / 3600 / 60);
         scrollY = (scrollY + spd) % 120;
-        subX += (mouseX - subX) * 0.12;
+        if (keyLeft)  mouseX -= keyStep;
+        if (keyRight) mouseX += keyStep;
+        mouseX = Math.max(wL[0] + SUB_W / 2 + 6, Math.min(wR[0] - SUB_W / 2 - 6, mouseX));
+        subX += (mouseX - subX) * lerpSubX;
 
         if (shieldActif) { shieldTimer -= 1 / 60; if (shieldTimer <= 0) shieldActif = false; }
         if (mechaActif) {
@@ -1079,8 +1119,19 @@
         for (let i = collectibles.length - 1; i >= 0; i--) {
           const col = collectibles[i]; col.y += spd;
           if (col.y > CH + 40) { collectibles.splice(i, 1); continue; }
-          const dx = subX - col.x, dy = subY - col.y;
-          if (Math.sqrt(dx * dx + dy * dy) < col.r + 18) {
+          /* ── Aimant : si on s'approche, le collectible est attiré vers le sous-marin ── */
+          let dxc = subX - col.x, dyc = subY - col.y;
+          let dist = Math.sqrt(dxc * dxc + dyc * dyc);
+          const MAGNET_R = 135;
+          if (dist < MAGNET_R) {
+            const pull = 0.05 + 0.28 * (1 - dist / MAGNET_R);
+            col.x += dxc * pull; col.y += dyc * pull;
+            dxc = subX - col.x; dyc = subY - col.y;
+            dist = Math.sqrt(dxc * dxc + dyc * dyc);
+          }
+          /* ── Hitbox fidèle au sprite (éclair ×2 ≈ 38, étoile branches+halo ≈ 42, bouclier ≈ 30) ── */
+          const hitR = col.type === 'boost' ? 38 : col.type === 'star' ? 42 : 30;
+          if (dist < hitR) {
             if (col.type === 'boost') {
               /* Éclair : vitesse + radar repoussé (retour État 0) */
               vitesse += CFG.boostSpeedGain;
