@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certificat Top 4 — Pilote Radar · Lis un cœur</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --signal:#0e9f6e;
+    --signal-fonce:#0b7a55;
+    --signal-clair:#34d399;
+    --battement:#e11d48;
+    --encre:#16302a;
+    --encre-doux:#4b6058;
+    --papier:#fbfaf6;
+    
+    /* Variables de base (Or par défaut) */
+    --or:#b8893b;
+    --or-clair:#d8b25e;
+    --or-fonce:#8d6726;
+    
+    --titre:"Bricolage Grotesque","Bricolage","Trebuchet MS",sans-serif;
+    --texte:"Atkinson Hyperlegible","Atkinson","Segoe UI",sans-serif;
+  }
+
+  /* Thèmes dynamiques pour le podium */
+  .theme-or {
+    --or:#b8893b;
+    --or-clair:#d8b25e;
+    --or-fonce:#8d6726;
+  }
+  .theme-argent {
+    --or:#94a3b8;
+    --or-clair:#cbd5e1;
+    --or-fonce:#475569;
+  }
+  .theme-bronze {
+    --or:#b45309;
+    --or-clair:#f59e0b;
+    --or-fonce:#78350f;
+  }
+  .theme-chocolat {
+    --or:#7b3f00;       /* Marron chocolat */
+    --or-clair:#a0522d; /* Chocolat au lait */
+    --or-fonce:#4a2511; /* Chocolat noir */
+  }
+
+  *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  html,body{ margin:0; }
+  body{
+    font-family:var(--texte);
+    color:var(--encre);
+    background:#e7ece9;
+    display:flex; flex-direction:column; align-items:center;
+    padding:24px 12px 60px;
+    min-height:100vh;
+  }
+
+  /* ───────── Bandeau d'aide et de contrôle (jamais imprimé) ───────── */
+  .aide{
+    width:297mm; max-width:100%;
+    background:#fff; border:1px solid #d6ddd9; border-radius:14px;
+    padding:16px 20px; margin-bottom:22px;
+    font-size:0.95rem; color:var(--encre-doux); line-height:1.55;
+    box-shadow:0 8px 24px rgba(22,48,42,0.08);
+  }
+  .aide strong{ color:var(--encre); }
+  .aide .titre-aide{
+    font-family:var(--titre); font-weight:800; font-size:1.1rem;
+    color:var(--encre); margin-bottom:12px; display:block; text-align:center;
+  }
+  .aide code{
+    background:#eef3f0; border-radius:6px; padding:1px 7px;
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.85em; color:var(--signal-fonce);
+  }
+  
+  .controle-podium {
+    display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;
+  }
+  .btn-podium {
+    padding: 10px 20px; font-family: var(--titre); font-weight: 800; font-size: 1rem;
+    border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+    background: #f0f4f2; color: var(--encre);
+  }
+  .btn-podium:hover { transform: translateY(-2px); }
+  .btn-podium.actif { border-color: var(--signal); background: #e6f8ef; box-shadow: 0 4px 12px rgba(14,159,110,0.2); }
+  
+  .btn-or span { color: #b8893b; }
+  .btn-argent span { color: #64748b; }
+  .btn-bronze span { color: #b45309; }
+  .btn-chocolat span { color: #7b3f00; }
+
+  /* ───────── Le diplôme (format A4 paysage) ───────── */
+  .diplome{
+    width:297mm; height:210mm;
+    position:relative; overflow:hidden;
+    background:var(--papier);
+    box-shadow:0 24px 60px rgba(22,48,42,0.22);
+    background-image:
+      radial-gradient(120% 130% at 100% 0%, rgba(52,211,153,0.10) 0%, transparent 48%),
+      radial-gradient(120% 130% at 0% 100%, rgba(225,29,72,0.06) 0%, transparent 48%),
+      linear-gradient(rgba(225,29,72,0.030) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(225,29,72,0.030) 1px, transparent 1px),
+      linear-gradient(rgba(225,29,72,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(225,29,72,0.05) 1px, transparent 1px);
+    background-size:100% 100%, 100% 100%, 5mm 5mm, 5mm 5mm, 25mm 25mm, 25mm 25mm;
+  }
+
+  /* Filigrane RADAR */
+  .filigrane{
+    position:absolute; inset:0; z-index:0;
+    display:grid; place-items:center; pointer-events:none;
+  }
+  .filigrane svg{ width:140mm; height:auto; opacity:0.07; }
+
+  /* Cadre décoratif */
+  .cadre{
+    position:absolute; inset:8mm; z-index:2;
+    border:3px double var(--or);
+    border-radius:8px;
+    padding:8mm 16mm 9mm;
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  .cadre::before{
+    content:""; position:absolute; inset:3mm;
+    border:1.5px solid var(--battement);
+    border-radius:5px; pointer-events:none;
+  }
+  .cadre::after{
+    content:""; position:absolute; inset:4.2mm;
+    border:0.5px solid rgba(225,29,72,0.4);
+    border-radius:4px; pointer-events:none;
+  }
+
+  /* Ornements d'angle dorés/argentés/bronzés/chocolat */
+  .angle{ position:absolute; width:18mm; height:18mm; color:var(--or); opacity:0.85; z-index:3; }
+  .angle.tl{ top:5.5mm; left:5.5mm; }
+  .angle.tr{ top:5.5mm; right:5.5mm; transform:scaleX(-1); }
+  .angle.bl{ bottom:5.5mm; left:5.5mm; transform:scaleY(-1); }
+  .angle.br{ bottom:5.5mm; right:5.5mm; transform:scale(-1,-1); }
+  
+  .coin-coeur{ position:absolute; font-size:11px; color:var(--battement); opacity:0.85; z-index:3; }
+  .coin-coeur.tl{ top:9mm; left:9mm; } .coin-coeur.tr{ top:9mm; right:9mm; }
+  .coin-coeur.bl{ bottom:9mm; left:9mm; } .coin-coeur.br{ bottom:9mm; right:9mm; }
+
+  /* En-tête */
+  .atelier{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--titre); font-weight:700; font-size:0.88rem;
+    color:var(--encre-doux); letter-spacing:0.04em;
+    background:#fff; border:1px solid rgba(184,137,59,0.45);
+    padding:5px 18px; border-radius:99px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  }
+  .atelier .pls{ color:var(--battement); }
+
+  .filet{
+    display:flex; align-items:center; gap:9px;
+    margin-top:4mm; color:var(--or);
+  }
+  .filet .trait{ width:34mm; height:0; border-top:1px solid var(--or); opacity:0.7; }
+  .filet .gemme{ width:5px; height:5px; transform:rotate(45deg); background:var(--or); }
+
+  /* Titre */
+  .titre-diplome{ margin:3.5mm 0 0; }
+  .surtitre{
+    display:block; font-family:var(--titre); font-weight:800;
+    font-size:0.85rem; letter-spacing:0.3em; text-transform:uppercase;
+    color:var(--battement); margin-bottom:3mm; padding-left:0.3em;
+  }
+  .titre-edit{
+    font-family:var(--titre); font-weight:800;
+    font-size:3rem; line-height:0.98; letter-spacing:-0.02em;
+    color:var(--encre); outline:none; border-radius:6px; padding:0 4px;
+    display:inline-block;
+  }
+
+  .decerne{ margin-top:3.5mm; font-size:1.02rem; color:var(--encre-doux); font-style:italic; }
+
+  /* Nom */
+  .nom-zone{ position:relative; margin:1.5mm 0 0; padding:0 8mm; }
+  .nom{
+    font-family:var(--titre); font-weight:800;
+    font-size:2.9rem; line-height:1.05; letter-spacing:-0.01em;
+    color:var(--or-fonce);
+    display:inline-block; min-width:140mm;
+    outline:none; border-radius:6px; padding:0 6px;
+  }
+  
+  /* Zone de Score */
+  .score-zone { margin: 3.5mm 0 1.5mm; }
+  .score-edit {
+    font-family: var(--titre); font-weight: 900; font-size: 2.2rem; 
+    color: var(--battement); border-bottom: 3px dashed var(--battement); 
+    padding: 0 15px 5px; outline: none; border-radius: 8px; display: inline-block;
+    background: rgba(225,29,72,0.05);
+  }
+
+  .mention{
+    margin-top:2.5mm; font-size:0.95rem; color:var(--encre);
+    max-width:210mm; line-height:1.5; outline:none; border-radius:6px; padding: 4px;
+  }
+
+  .nom:hover, .nom:focus, .titre-edit:hover, .titre-edit:focus,
+  .mention:hover, .mention:focus, .date-edit:hover, .date-edit:focus, .score-edit:hover, .score-edit:focus { 
+    background:rgba(225,29,72,0.07); 
+  }
+
+  /* Compétences Arcade */
+  .competences{
+    display:flex; gap:9mm; margin-top:5mm; flex-wrap:nowrap; justify-content:center;
+  }
+  .comp{ display:flex; flex-direction:column; align-items:center; gap:4px; width:26mm; }
+  .comp-ico{
+    width:14mm; height:14mm; border-radius:50%;
+    display:grid; place-items:center; font-size:1.5rem;
+    background:#fff; border:2px solid rgba(225,29,72,0.5);
+    box-shadow:0 4px 12px rgba(225,29,72,0.15);
+  }
+  .comp-lbl{ font-family:var(--titre); font-weight:800; font-size:0.75rem; color:var(--battement); letter-spacing:0.02em; text-transform:uppercase; }
+
+  /* Pied */
+  .pied-diplome{
+    margin-top:auto; width:100%; display:flex; align-items:flex-end; justify-content:space-between;
+    gap:8mm; padding-top:2mm;
+  }
+  .bloc-pied{ flex:1; min-width:0; }
+  .ligne-signature{ border-top:1.5px solid var(--encre); margin-bottom:5px; height:0; width:55mm; }
+  .pied-libelle{ font-family:var(--titre); font-weight:700; font-size:0.82rem; color:var(--encre); }
+  .pied-detail{ font-size:0.74rem; color:var(--encre-doux); }
+  .lieu-date{ text-align:left; }
+  .signature-atelier{ text-align:right; }
+  .signature-atelier .ligne-signature{ margin-left:auto; }
+  .date-edit{ outline:none; border-radius:5px; padding:0 4px; }
+
+  /* Sceau High Score */
+  .sceau{ flex:none; width:30mm; height:30mm; position:relative; display:grid; place-items:center; }
+  .sceau-ring{
+    position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 50% 35%, #fdf6e6 0%, #f6e9c8 55%, #ecd49b 100%);
+    border:1.5px solid var(--or);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1), inset 0 0 0 2.5px #fff, inset 0 0 0 3.5px var(--or-clair), inset 0 0 12px rgba(0,0,0,0.1);
+  }
+  .sceau-svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .sceau-svg .texte-courbe{ font-family:var(--titre); font-weight:900; font-size:4.8px; letter-spacing:1px; fill:var(--or-fonce); text-transform:uppercase; }
+  .sceau-svg .tirets{ stroke:var(--or); stroke-width:0.5; opacity:0.55; }
+  .sceau-inner{ position:relative; text-align:center; line-height:1; z-index:2; }
+  .sceau-medal{ font-size:1.6rem; display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2)); }
+  .sceau-etoiles{ font-size:0.55rem; color:var(--or-fonce); letter-spacing:2px; margin-top:1px; }
+
+  @page{ size:A4 landscape; margin:0; }
+  @media print{
+    body{ background:#fff; padding:0; display:block; }
+    .aide{ display:none !important; }
+    .diplome{ box-shadow:none; margin:0; transform:none !important; }
+  }
+
+  @media screen and (max-width:1180px){
+    .diplome{ transform:scale(calc(100vw / 1130)); transform-origin:top center; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Panneau de contrôle -->
+  <div class="aide">
+    <span class="titre-aide">🎛️ Panneau de contrôle du Classement</span>
+    <div class="controle-podium">
+      <button class="btn-podium btn-or actif" onclick="changerRang(1)"><span>🥇</span> 1ère Place</button>
+      <button class="btn-podium btn-argent" onclick="changerRang(2)"><span>🥈</span> 2ème Place</button>
+      <button class="btn-podium btn-bronze" onclick="changerRang(3)"><span>🥉</span> 3ème Place</button>
+      <button class="btn-podium btn-chocolat" onclick="changerRang(4)"><span>🍫</span> 4ème Place</button>
+    </div>
+    <div style="text-align: center;">
+      <strong>1.</strong> Choisis le rang du joueur ci-dessus.<br>
+      <strong>2.</strong> Clique directement sur le <b>Prénom</b> et le <b>Score</b> pour personnaliser.<br>
+      <strong>3.</strong> Pour imprimer : <code>Ctrl/Cmd + P</code> → <b>Enregistrer au format PDF</b> → Orientation <b>Paysage</b> → Marges <b>Aucune</b> → Coche <b>Graphismes d'arrière-plan</b>.
+    </div>
+  </div>
+
+  <!-- Le diplôme -->
+  <div class="diplome theme-or" id="diplome-wrapper">
+
+    <div class="filigrane" aria-hidden="true">
+      <svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="300" cy="300" r="250" fill="none" stroke="#e11d48" stroke-width="4" opacity="0.5"/>
+        <circle cx="300" cy="300" r="150" fill="none" stroke="#e11d48" stroke-width="4" opacity="0.5"/>
+        <circle cx="300" cy="300" r="50" fill="none" stroke="#e11d48" stroke-width="4" opacity="0.5"/>
+        <line x1="300" y1="50" x2="300" y2="550" stroke="#e11d48" stroke-width="4" opacity="0.5" stroke-dasharray="10, 10"/>
+        <line x1="50" y1="300" x2="550" y2="300" stroke="#e11d48" stroke-width="4" opacity="0.5" stroke-dasharray="10, 10"/>
+        <path d="M 300 300 L 476 123" stroke="#e11d48" stroke-width="8" opacity="0.8"/>
+        <circle cx="430" cy="170" r="12" fill="#e11d48" opacity="0.9"/>
+      </svg>
+    </div>
+
+    <div class="cadre">
+      <svg class="angle tl" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6 H42 M6 6 V42" stroke-linecap="round"/><path d="M14 14 C 14 38, 38 14, 38 38" stroke-width="1.6"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg>
+      <svg class="angle tr" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6 H42 M6 6 V42" stroke-linecap="round"/><path d="M14 14 C 14 38, 38 14, 38 38" stroke-width="1.6"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg>
+      <svg class="angle bl" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6 H42 M6 6 V42" stroke-linecap="round"/><path d="M14 14 C 14 38, 38 14, 38 38" stroke-width="1.6"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg>
+      <svg class="angle br" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6 H42 M6 6 V42" stroke-linecap="round"/><path d="M14 14 C 14 38, 38 14, 38 38" stroke-width="1.6"/><circle cx="6" cy="6" r="3" fill="currentColor" stroke="none"/></svg>
+      
+      <span class="coin-coeur tl">📡</span><span class="coin-coeur tr">📡</span>
+      <span class="coin-coeur bl">📡</span><span class="coin-coeur br">📡</span>
+
+      <div class="atelier"><span class="pls">🕹️</span> Borne d'Arcade « Lis un cœur »</div>
+
+      <div class="filet" aria-hidden="true">
+        <span class="trait"></span><span class="gemme"></span><span class="trait"></span>
+      </div>
+
+      <div class="titre-diplome">
+        <span class="surtitre" id="text-surtitre">CERTIFICAT D'EXCELLENCE — 1ÈRE PLACE</span>
+        <span class="titre-edit" id="text-titre" contenteditable="true" spellcheck="false">Champion·ne Incontesté·e Sonar</span>
+      </div>
+
+      <p class="decerne">Cette distinction honorifique est fièrement décernée à</p>
+
+      <div class="nom-zone">
+        <span class="nom" contenteditable="true" spellcheck="false">Prénom du Joueur</span>
+      </div>
+
+      <div class="score-zone">
+        <span class="score-edit" contenteditable="true" spellcheck="false">Score : 8 450 mètres</span>
+      </div>
+
+      <p class="mention" id="text-mention" contenteditable="true" spellcheck="false">
+        pour avoir dominé les abysses, pulvérisé le record absolu de la journée et fait preuve de réflexes légendaires sur le simulateur du Délit de Fuite !
+      </p>
+
+      <div class="competences">
+        <div class="comp"><span class="comp-ico" id="icon-medal">🥇</span><span class="comp-lbl" id="lbl-medal">Classement</span></div>
+        <div class="comp"><span class="comp-ico">⚡</span><span class="comp-lbl">Vitesse</span></div>
+        <div class="comp"><span class="comp-ico">🚀</span><span class="comp-lbl">Esquive</span></div>
+        <div class="comp"><span class="comp-ico">⭐</span><span class="comp-lbl">Mecha</span></div>
+        <div class="comp"><span class="comp-ico">📡</span><span class="comp-lbl">Furtivité</span></div>
+      </div>
+
+      <div class="pied-diplome">
+        <div class="bloc-pied lieu-date">
+          <div class="ligne-signature"></div>
+          <div class="pied-libelle">Fait à Talence, en <span class="date-edit" contenteditable="true" spellcheck="false">juin 2026</span></div>
+        </div>
+
+        <div class="sceau" aria-hidden="true">
+          <div class="sceau-ring"></div>
+          <svg class="sceau-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <path id="arc-haut" d="M 18 50 A 32 32 0 0 1 82 50"/>
+              <path id="arc-bas" d="M 20 50 A 30 30 0 0 0 80 50"/>
+            </defs>
+            <text class="texte-courbe"><textPath href="#arc-haut" startOffset="50%" text-anchor="middle">Arcade · Lis un cœur</textPath></text>
+            <text class="texte-courbe"><textPath href="#arc-bas" startOffset="50%" text-anchor="middle">High Score · Radar</textPath></text>
+            <line class="tirets" x1="14" y1="50" x2="20" y2="50"/>
+            <line class="tirets" x1="80" y1="50" x2="86" y2="50"/>
+          </svg>
+          <div class="sceau-inner">
+            <span class="sceau-medal" id="sceau-medal">🥇</span>
+            <div class="sceau-etoiles">★ ★ ★</div>
+          </div>
+        </div>
+
+        <div class="bloc-pied signature-atelier">
+          <div class="ligne-signature"></div>
+          <div class="pied-libelle">L'équipe de l'atelier</div>
+          <div class="pied-detail">Stage Télécommunications</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function changerRang(rang) {
+      // Met à jour les boutons
+      document.querySelectorAll('.btn-podium').forEach((btn, index) => {
+        btn.classList.toggle('actif', index + 1 === rang);
+      });
+
+      const diplome = document.getElementById('diplome-wrapper');
+      const surtitre = document.getElementById('text-surtitre');
+      const titre = document.getElementById('text-titre');
+      const mention = document.getElementById('text-mention');
+      const iconMedal = document.getElementById('icon-medal');
+      const lblMedal = document.getElementById('lbl-medal');
+      const sceauMedal = document.getElementById('sceau-medal');
+
+      // Met à jour le thème CSS et les textes selon la place
+      if (rang === 1) {
+        diplome.className = 'diplome theme-or';
+        surtitre.innerText = "CERTIFICAT D'EXCELLENCE — 1ÈRE PLACE";
+        titre.innerText = "Champion·ne Incontesté·e Sonar";
+        mention.innerText = "pour avoir dominé les abysses, pulvérisé le record absolu de la journée et fait preuve de réflexes légendaires sur le simulateur du Délit de Fuite !";
+        iconMedal.innerText = "🥇";
+        lblMedal.innerText = "Classement";
+        sceauMedal.innerText = "🥇";
+      } else if (rang === 2) {
+        diplome.className = 'diplome theme-argent';
+        surtitre.innerText = "CERTIFICAT D'EXCELLENCE — 2ÈME PLACE";
+        titre.innerText = "Pilote d'Élite Sonar";
+        mention.innerText = "pour avoir navigué avec une maîtrise exceptionnelle, frôlé la perfection et établi le deuxième meilleur record sur le simulateur du Délit de Fuite !";
+        iconMedal.innerText = "🥈";
+        lblMedal.innerText = "Classement";
+        sceauMedal.innerText = "🥈";
+      } else if (rang === 3) {
+        diplome.className = 'diplome theme-bronze';
+        surtitre.innerText = "CERTIFICAT D'EXCELLENCE — 3ÈME PLACE";
+        titre.innerText = "Expert·e Tacticien·ne Sonar";
+        mention.innerText = "pour avoir fait preuve de sang-froid, survécu au faisceau radar intraitable et décroché sa place sur le podium du simulateur du Délit de Fuite !";
+        iconMedal.innerText = "🥉";
+        lblMedal.innerText = "Classement";
+        sceauMedal.innerText = "🥉";
+      } else if (rang === 4) {
+        diplome.className = 'diplome theme-chocolat';
+        surtitre.innerText = "CERTIFICAT D'ENCOURAGEMENT — 4ÈME PLACE";
+        titre.innerText = "Pilote au Pied du Podium";
+        mention.innerText = "pour avoir vaillamment combattu les échos, raté le podium d'un cheveu et décroché la légendaire médaille en chocolat sur le simulateur du Délit de Fuite !";
+        iconMedal.innerText = "🍫";
+        lblMedal.innerText = "Chocolat";
+        sceauMedal.innerText = "🍫";
+      }
+    }
+  </script>
+
+</body>
+</html>

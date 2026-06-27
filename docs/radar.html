@@ -263,6 +263,39 @@
     .radar-instructions { font-size: 1rem; color: var(--encre); text-align: center; font-weight: bold; background: #e6f8ef; padding: 16px; border-radius: 8px; border: 1px solid var(--signal); margin-bottom: 15px; }
     #graphe-vitesse { width: 100%; height: 280px; }
 
+    /* Curseur de sensibilité (départ + pause) */
+    .sens-slider-wrap, .pause-sens { margin: 6px auto 18px; max-width: 320px; }
+    .sens-slider {
+      -webkit-appearance: none; appearance: none; width: 100%; height: 8px;
+      border-radius: 6px; background: rgba(14,159,110,0.25);
+      outline: none; cursor: pointer; margin: 10px 0 4px;
+    }
+    .sens-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 22px; height: 22px;
+      border-radius: 50%; background: var(--signal); border: 3px solid #fff;
+      box-shadow: 0 0 10px rgba(14,159,110,0.6); cursor: pointer;
+    }
+    .sens-slider::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--signal);
+      border: 3px solid #fff; box-shadow: 0 0 10px rgba(14,159,110,0.6); cursor: pointer;
+    }
+    .sens-legende { display: flex; justify-content: space-between; font-size: 0.72rem; color: #7f9c8f; }
+
+    /* Overlay Pause */
+    #course-pause {
+      position: absolute; inset: 0; z-index: 50; background: rgba(0,18,8,0.92);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .pause-box {
+      background: rgba(4,30,18,0.9); border: 2px solid var(--signal-fonce);
+      border-radius: 16px; padding: 28px 32px; max-width: 420px; width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .pause-box h3 { color: var(--signal); font-family: var(--titre); font-size: 2rem; margin: 0 0 18px; text-shadow: 0 0 16px rgba(14,159,110,0.4); }
+    .pause-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+    .pause-actions .pp-btn { margin-top: 6px; }
+
   </style>
 </head>
 <body class="sonar-actif">
@@ -395,15 +428,14 @@
                 ⚡ <strong style="color:#fbbf24;">Éclairs</strong> = vitesse + radar repoussé (retour à 0 strike). &nbsp; 🛡️ <strong style="color:#60a5fa;">Boucliers</strong> = immunité 5 s.<br>
                 ⭐ <strong style="color:#fbbf24;">Étoile (rare)</strong> = Transformation <strong>MECHA-SUB</strong> : 8 s d'invulnérabilité totale + destruction !
               </p>
-              <div class="diff-titre" style="color:var(--signal); margin-top:14px;">🎚️ Sensibilité du pilotage</div>
-              <div class="course-diff-boutons" id="sens-boutons">
-                <button class="course-diff-btn sens-btn" data-sens="faible">Faible</button>
-                <button class="course-diff-btn sens-btn actif" data-sens="normale">Normale</button>
-                <button class="course-diff-btn sens-btn" data-sens="elevee">Élevée</button>
+              <div class="diff-titre" style="color:var(--signal); margin-top:14px;">🎚️ Sensibilité du pilotage : <span id="sens-val-start">40 %</span></div>
+              <div class="sens-slider-wrap">
+                <input type="range" id="sens-slider-start" class="sens-slider" min="1" max="100" value="40" aria-label="Sensibilité du pilotage">
+                <div class="sens-legende"><span>Douce</span><span>Vive</span></div>
               </div>
               <div id="course-record" style="color:#fbbf24; font-weight:bold; margin:10px 0 4px; min-height:1.1em;"></div>
               <button class="pp-btn btn-suivant" id="btn-start-course">🚀 JOUER EN PLEIN ÉCRAN</button>
-              <div style="font-size:0.78rem; color:#7f9c8f; margin-top:8px;">Astuce : touche <strong>R</strong> pour recommencer.</div>
+              <div style="font-size:0.78rem; color:#7f9c8f; margin-top:8px;">En jeu : <strong>P</strong> = pause · <strong>R</strong> = revenir à cet écran.</div>
             </div>
 
             <div class="hud-course">
@@ -439,6 +471,25 @@
                 <div class="pv-actions">
                   <button class="pv-btn pv-btn-rejouer" id="btn-rejouer-modale">🔄 Rejouer la course</button>
                   <a href="index.html?badge=radar" class="pv-btn pv-btn-badge pv-badge-argent" id="btn-retour-badge">🥈 Retour à l'accueil (Badge Argent)</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- OVERLAY PAUSE : à l'intérieur du conteneur pour rester visible en plein écran -->
+            <div id="course-pause">
+              <div class="pause-box">
+                <h3>⏸️ PAUSE</h3>
+                <div class="pause-sens">
+                  <div class="diff-titre" style="color:var(--signal);">🎚️ Sensibilité du pilotage : <span id="sens-val-pause">40 %</span></div>
+                  <input type="range" id="sens-slider-pause" class="sens-slider" min="1" max="100" value="40" aria-label="Sensibilité du pilotage">
+                  <div class="sens-legende"><span>Douce</span><span>Vive</span></div>
+                </div>
+                <div class="pause-actions">
+                  <button class="pp-btn btn-suivant" id="btn-reprendre">▶ Reprendre</button>
+                  <button class="pp-btn" id="btn-pause-menu" style="border-color:#e11d48; color:#e11d48;">↩ Menu de départ</button>
+                </div>
+                <div style="font-size:0.78rem; color:#7f9c8f; margin-top:14px;">
+                  Touche <strong>P</strong> : reprendre · Touche <strong>R</strong> : menu de départ
                 </div>
               </div>
             </div>
@@ -730,13 +781,12 @@
 
     /* ── État ── */
     let cv, ctx, animId;
-    let jeuEnCours = false, jeuFige = false;
+    let jeuEnCours = false, jeuFige = false, jeuPause = false;
     let subX = CW / 2, mouseX = CW / 2;
     /* ── Pilotage clavier + sensibilité ── */
     let keyLeft = false, keyRight = false;
-    const SENS_PRESETS = { faible: { lerp: 0.08, key: 6 }, normale: { lerp: 0.14, key: 9 }, elevee: { lerp: 0.22, key: 15 } };
-    let sensChoisie = 'normale';
-    let lerpSubX = SENS_PRESETS.normale.lerp, keyStep = SENS_PRESETS.normale.key;
+    /* Sensibilité pilotée par le curseur (voir setSens/appliquerSens plus bas) */
+    let lerpSubX = 0.14, keyStep = 9;
     let vitesse, frames, scrollY, flashRed;
     let score, maxVitesse, radarZoneTop;
     let radarState; // 0 = hidden, 1 = alert (1st strike), 2 = game over
@@ -809,13 +859,14 @@
       mechaActif = false; mechaTimer = 0;
       subX = CW / 2; mouseX = CW / 2;
       keyLeft = false; keyRight = false;
-      lerpSubX = SENS_PRESETS[sensChoisie].lerp;
-      keyStep  = SENS_PRESETS[sensChoisie].key;
+      appliquerSens();
       obstacles = []; collectibles = []; explosionParts = []; bulles = []; sillagePoints = [];
       missiles = []; torpilles = []; sparks = []; flotants = [];
       prochainMissile = 600; prochainTorpille = 900;
       plotT = []; plotV = []; annots = []; dernierPt = -1;
       jeuFige = false;
+      jeuPause = false;
+      { const pm = document.getElementById('course-pause'); if (pm) pm.style.display = 'none'; }
       container.classList.remove('shake-anim');
       document.getElementById('modale-pv').classList.remove('visible');
       document.getElementById('flash-fin-jeu').classList.remove('flash-boom');
@@ -834,29 +885,82 @@
     document.getElementById('btn-retour-badge').addEventListener('click', () => {
       if (document.fullscreenElement) document.exitFullscreen();
     });
-    /* Touche R : recommencer à tout moment */
+    /* Touche R : revenir à l'écran de départ complet (règles + sensibilité) */
     document.addEventListener('keydown', (e) => {
       if (!container) return;
       const visible = document.getElementById('phase-radar').style.display === 'block';
       if (visible && (e.key === 'r' || e.key === 'R') &&
           document.getElementById('course-overlay').style.display === 'none') {
-        lancerCourse();
+        retourEcranDepart();
       }
     });
 
-    /* ── Sensibilité : boutons de l'écran de départ ── */
-    document.querySelectorAll('#sens-boutons .sens-btn').forEach(btn => {
-      btn.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        document.querySelectorAll('#sens-boutons .sens-btn').forEach(b => b.classList.remove('actif'));
-        btn.classList.add('actif');
-        sensChoisie = btn.dataset.sens;
-      });
+    /* ── Sensibilité : curseur réglable en direct (départ + pause) ── */
+    let sensValeur = 40;
+    function sensFromVal(v) { const t = v / 100; return { lerp: 0.06 + t * 0.20, key: 5 + t * 11 }; }
+    function appliquerSens() { const s = sensFromVal(sensValeur); lerpSubX = s.lerp; keyStep = s.key; }
+    function syncSliders() {
+      const a = document.getElementById('sens-slider-start');
+      const b = document.getElementById('sens-slider-pause');
+      if (a) a.value = sensValeur;
+      if (b) b.value = sensValeur;
+      const la = document.getElementById('sens-val-start');
+      const lb = document.getElementById('sens-val-pause');
+      if (la) la.textContent = sensValeur + ' %';
+      if (lb) lb.textContent = sensValeur + ' %';
+    }
+    function setSens(v) {
+      sensValeur = Math.max(1, Math.min(100, parseInt(v, 10) || 40));
+      appliquerSens();   // appliqué en direct, y compris pendant une partie
+      syncSliders();
+    }
+    ['sens-slider-start', 'sens-slider-pause'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', (ev) => { ev.stopPropagation(); setSens(el.value); });
+        el.addEventListener('click', (ev) => ev.stopPropagation());
+      }
     });
+    appliquerSens(); syncSliders();
+
+    /* ── Pause (touche P) ── */
+    function basculerPause(forcer) {
+      if (!jeuEnCours || jeuFige) return;
+      if (document.getElementById('modale-pv').classList.contains('visible')) return;
+      jeuPause = (forcer !== undefined) ? forcer : !jeuPause;
+      const menu = document.getElementById('course-pause');
+      if (menu) menu.style.display = jeuPause ? 'flex' : 'none';
+      keyLeft = false; keyRight = false; // évite un déplacement « collé » à la reprise
+    }
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('phase-radar').style.display !== 'block') return;
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); basculerPause(); }
+    });
+    { const b = document.getElementById('btn-reprendre'); if (b) b.addEventListener('click', () => basculerPause(false)); }
+    { const b = document.getElementById('btn-pause-menu'); if (b) b.addEventListener('click', () => retourEcranDepart()); }
+
+    /* ── Retour à l'écran de départ complet (touche R / bouton menu) ── */
+    function retourEcranDepart() {
+      jeuEnCours = false; jeuFige = false; jeuPause = false;
+      if (animId) cancelAnimationFrame(animId);
+      if (cv) cv.removeEventListener('mousemove', onMouse);
+      const pm = document.getElementById('course-pause');
+      if (pm) pm.style.display = 'none';
+      document.getElementById('modale-pv').classList.remove('visible');
+      if (container) container.classList.remove('shake-anim');
+      document.getElementById('flash-fin-jeu').classList.remove('flash-boom');
+      majDimensions();
+      majRecord();
+      syncSliders();
+      if (ctx) ctx.clearRect(0, 0, CW, CH);
+      const ov = document.getElementById('course-overlay');
+      if (ov) ov.style.display = 'flex';
+    }
 
     /* ── Pilotage clavier : flèches + Q/D (AZERTY) + A/D (QWERTY) ── */
     document.addEventListener('keydown', (e) => {
       if (document.getElementById('phase-radar').style.display !== 'block') return;
+      if (jeuPause) return;
       const k = e.key;
       if (k === 'ArrowLeft' || k === 'q' || k === 'Q' || k === 'a' || k === 'A') { keyLeft = true; e.preventDefault(); }
       else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keyRight = true; e.preventDefault(); }
@@ -981,6 +1085,9 @@
     ════════════════════════════════════════════════ */
     function boucle() {
       if (!jeuEnCours) return;
+
+      /* Pause : on fige tout (physique gelée), on garde la dernière image affichée */
+      if (jeuPause) { dessiner(); animId = requestAnimationFrame(boucle); return; }
 
       if (!jeuFige) {
         frames++;
